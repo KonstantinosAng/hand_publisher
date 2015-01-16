@@ -49,25 +49,18 @@ int main(int argc, char** argv)
   raad2015::SerialCommunication comms;
   raad2015::HandPublisher hand;
 
-  try
-  {
-    comms.connect("/dev/ttyUSB0");
-  }
-  catch (std::exception &e)
-  {
-    ROS_ERROR("Could not connect. %s", e.what());
-    return -1;
-  }
-
-  hand.init();
+//  hand.init();
 
   ros::Rate rate(30);
   ros::AsyncSpinner spinner(1);
   spinner.start();
   while(ros::ok())
   {
-    hand.updateTransform();
-    comms.checkSerial(hand.getTransform());
+//    hand.updateTransform();
+//    comms.checkSerial(hand.getTransform());
+    std::string msg = comms.receive();
+    ROS_INFO("%s", msg.c_str());
+    rate.sleep();
   }
   return 0;
 }

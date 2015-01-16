@@ -39,8 +39,7 @@
 #ifndef SERIAL_COMMUNICATION_H
 #define SERIAL_COMMUNICATION_H
 
-#include <iostream>
-#include <string>
+#include <SerialStream.h>
 #include <tf/transform_datatypes.h>
 
 namespace raad2015 {
@@ -51,21 +50,15 @@ namespace raad2015 {
 class SerialCommunication
 {
 public:
-  SerialCommunication(const int latency = 10);
-  ~SerialCommunication();
-  bool isConnected();
-  void connect(const std::string &port);
-  void disconnect();
+  SerialCommunication(const std::string &port = "/dev/ttyUSB0");
   void send(const std::string &msg);
   std::string receive();
   void checkSerial(const tf::StampedTransform &transform);
 private:
-  void initPort();
-  void writeMessage(const std::string &msg);
   void sendTransform(const tf::StampedTransform &transform);
-  std::string readMessage();
-  int handle_;
-  int latency_;
+
+  static const int BUFFER_SIZE = 200;
+  LibSerial::SerialStream serial_;
 };
 
 }
