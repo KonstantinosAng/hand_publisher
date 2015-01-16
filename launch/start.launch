@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+	<!-- Load OpenNI2 -->
+	<include file="$(find openni2_launch)/launch/openni2.launch" />
+	<!-- Load NiTE Tracker -->
+	<include file="$(find openni2_tracker)/launch/openni2_tracker.launch" />
+	<!-- Load Visualization -->
+	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find hand_publisher)/config/display.rviz" />
+</launch>
