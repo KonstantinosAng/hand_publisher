@@ -1,5 +1,5 @@
 /*********************************************************************
-* hand_publisher.cpp
+* FabricVision.h
 *
 * Software License Agreement (BSD License)
 *
@@ -36,46 +36,27 @@
 * Authors: Aris Synodinos
 *********************************************************************/
 
-#include <exception>
+#ifndef FABRIC_VISION_H
+#define FABRIC_VISION_H
+
+#include <string>
 #include <ros/ros.h>
-#include <hand_publisher/config.h>
-#include <hand_publisher/SerialCommunication.h>
-#include <hand_publisher/HandPublisher.h>
-#include <hand_publisher/FabricVision.h>
+#include <opencv2/opencv.hpp>
 
-int main(int argc, char** argv)
+namespace raad2015 {
+
+
+class FabricVision
 {
-  ros::init(argc, argv, "hand_publisher");
-  ros::NodeHandle n;
+public:
+    void openFile(const std::string &filename);
+    void showImage(const std::string &window_name = "Display Image");
+    void saveFile(const std::string &filename);
+    void toGray();
+private:
+    cv::Mat image_;
+};
 
-  raad2015::SerialCommunication comms;
-  raad2015::HandPublisher hand;
-  raad2015::FabricVision vision;
-
-  std::string package_path(PACKAGE_PATH);
-  std::string open_path(package_path);
-  std::string save_path(package_path);
-  open_path.append("/samples/Lenna.png");
-  save_path.append("/samples/Edited.png");
-  vision.openFile(open_path);
-  vision.showImage("Original Image");
-  vision.toGray();
-  vision.saveFile(save_path);
-  vision.showImage("Edited Image");
-
-//  hand.init();
-/*
-  ros::Rate rate(30);
-  ros::AsyncSpinner spinner(1);
-  spinner.start();
-  while(ros::ok())
-  {
-//    hand.updateTransform();
-//    comms.checkSerial(hand.getTransform());
-    std::string msg = comms.receive();
-    ROS_INFO("%s", msg.c_str());
-    rate.sleep();
-  }
-*/
-  return 0;
 }
+
+#endif
