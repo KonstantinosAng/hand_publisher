@@ -52,19 +52,26 @@ SerialCommunication::SerialCommunication(const std::string &port)
   serial_.SetNumOfStopBits(1);
   serial_.SetParity(SerialStreamBuf::PARITY_NONE);
   serial_.SetFlowControl(SerialStreamBuf::FLOW_CONTROL_NONE);
+  serial_.SetVMin(0);
+  serial_.SetVTime(1);
 }
 
 void SerialCommunication::send(const std::string &msg)
 {
-  char output_buffer[BUFFER_SIZE];
-  strncpy(output_buffer, msg.c_str(), BUFFER_SIZE);
-  output_buffer[BUFFER_SIZE - 1] = 0;
+  char output_buffer[BUFFER_SIZE] = "";
+  std::size_t length = msg.copy(output_buffer, msg.size());
+  output_buffer[length] = '\r';
+  output_buffer[length+1] = '\n';
+  for ( unsigned int i = 0; i < BUFFER_SIZE; ++i)
+  {
+    ROS_INFO("ASCII Character %i is %i", i, static_cast<int>(output_buffer[i]));
+  }
   serial_.write(output_buffer,BUFFER_SIZE);
 }
 
 std::string SerialCommunication::receive()
 {
-  char input_buffer[BUFFER_SIZE];
+  char input_buffer[BUFFER_SIZE] = "";
   serial_.read(input_buffer,BUFFER_SIZE);
   std::string msg(input_buffer);
   return msg;
