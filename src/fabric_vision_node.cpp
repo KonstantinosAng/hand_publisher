@@ -1,5 +1,5 @@
 /*********************************************************************
-* HandPublisher.h
+* fabric_vision_node.cpp
 *
 * Software License Agreement (BSD License)
 *
@@ -36,30 +36,27 @@
 * Authors: Aris Synodinos
 *********************************************************************/
 
-#ifndef HAND_PUBLISHER_H
-#define HAND_PUBLISHER_H
-
 #include <ros/ros.h>
-#include <std_msgs/String.h>
-#include <tf/transform_listener.h>
+#include <hand_publisher/config.h>
+#include <hand_publisher/FabricVision.h>
 
-namespace raad2015 {
-
-class HandPublisher
+int main(int argc, char** argv)
 {
-public:
-  void init();
-  void publishTopic(const std::string &topic_name);
-  void runLoop();
-private:
-  void updateTransform();
-  void sendTransform();
-  ros::NodeHandle node_;
-  ros::Publisher publisher_;
-  tf::TransformListener listener_;
-  tf::StampedTransform tf_world_to_right_hand_;
-};
+  ros::init(argc, argv, "fabric_vision_node");
+  ros::NodeHandle n;
 
+  raad2015::FabricVision vision;
+
+  std::string package_path(PACKAGE_PATH);
+  std::string open_path(package_path);
+  std::string save_path(package_path);
+  open_path.append("/samples/Lenna.png");
+  save_path.append("/samples/Edited.png");
+  vision.openFile(open_path);
+  vision.showImage("Original Image");
+  vision.toGray();
+  vision.saveFile(save_path);
+  vision.showImage("Edited Image");
+
+  return 0;
 }
-
-#endif

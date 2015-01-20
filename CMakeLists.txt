@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(hand_publisher)
 
-list(APPEND CMAKE_MODULE_PATH "@CMAKE_CURRENT_SOURCE_DIR@/cmake/Modules/")
-find_package(LibSerial REQUIRED)
 find_package(catkin REQUIRED COMPONENTS roscpp tf std_msgs)
+find_package(Boost REQUIRED COMPONENTS thread)
 find_package(OpenCV REQUIRED)
 
 catkin_package(
@@ -18,18 +17,24 @@ configure_file(${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/config.h.in ${PROJE
 ## Build ##
 ###########
 include_directories(include ${catkin_INCLUDE_DIRS}
-                            ${LibSerial_INCLUDE_DIR}
-                            ${OpenCV_INCLUDE_DIR})
+                            ${OpenCV_INCLUDE_DIR}
+                            ${Boost_INCLUDE_DIRS})
 
 file(GLOB_RECURSE HEADERS ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/*.h)
 
-add_executable(${PROJECT_NAME} ${HEADERS}   src/${PROJECT_NAME}.cpp
-                                            src/SerialCommunication.cpp
-                                            src/HandPublisher.cpp
-                                            src/FabricVision.cpp)
-target_link_libraries(${PROJECT_NAME}   ${catkin_LIBRARIES}
-                                        ${LibSerial_LIBRARIES}
-                                        ${OpenCV_LIBRARIES})
+add_executable(serial_communication_node ${HEADERS} src/serial_communication_node.cpp
+                                                    src/SerialCommunication.cpp)
+target_link_libraries(serial_communication_node     ${catkin_LIBRARIES}
+                                                    ${Boost_LIBRARIES})
+
+add_executable(tf_to_string_node ${HEADERS}         src/tf_to_string_node.cpp
+                                                    src/HandPublisher.cpp)
+target_link_libraries(tf_to_string_node             ${catkin_LIBRARIES})
+
+add_executable(fabric_vision_node ${HEADERS}        src/fabric_vision_node.cpp
+                                                    src/FabricVision.cpp)
+target_link_libraries(fabric_vision_node            ${catkin_LIBRARIES}
+                                                    ${OpenCV_LIBRARIES})
 
 #############
 ## Install ##

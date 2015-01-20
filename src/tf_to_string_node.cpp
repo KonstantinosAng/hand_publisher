@@ -1,5 +1,5 @@
 /*********************************************************************
-* HandPublisher.h
+* tf_to_string_node.cpp
 *
 * Software License Agreement (BSD License)
 *
@@ -36,30 +36,14 @@
 * Authors: Aris Synodinos
 *********************************************************************/
 
-#ifndef HAND_PUBLISHER_H
-#define HAND_PUBLISHER_H
+#include <hand_publisher/HandPublisher.h>
 
-#include <ros/ros.h>
-#include <std_msgs/String.h>
-#include <tf/transform_listener.h>
-
-namespace raad2015 {
-
-class HandPublisher
+int main(int argc, char** argv)
 {
-public:
-  void init();
-  void publishTopic(const std::string &topic_name);
-  void runLoop();
-private:
-  void updateTransform();
-  void sendTransform();
-  ros::NodeHandle node_;
-  ros::Publisher publisher_;
-  tf::TransformListener listener_;
-  tf::StampedTransform tf_world_to_right_hand_;
-};
-
+  ros::init(argc, argv, "tf_to_string_node");
+  raad2015::HandPublisher hand;
+  hand.init();
+  hand.publishTopic("serial_outgoing_messages");
+  hand.runLoop();
+  return 0;
 }
-
-#endif

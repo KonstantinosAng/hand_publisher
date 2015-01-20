@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <launch>
   <group ns="camera">
     <node pkg="libuvc_camera" type="camera_node" name="philipscam">

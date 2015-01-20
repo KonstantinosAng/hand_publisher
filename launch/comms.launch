@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>
+	<!-- Load Serial Communication Node -->
+	<node name="serial_comms_node" pkg="hand_publisher" type="serial_communication_node" />
+</launch>

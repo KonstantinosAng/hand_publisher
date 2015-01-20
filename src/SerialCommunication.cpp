@@ -36,67 +36,98 @@
 * Authors: Aris Synodinos
 *********************************************************************/
 
-#include <ros/ros.h>
-#include <string>
 #include <hand_publisher/SerialCommunication.h>
-
-using namespace LibSerial;
 
 namespace raad2015 {
 
-SerialCommunication::SerialCommunication(const std::string &port)
+SerialCommunication::SerialCommunication(const std::string &port,
+                                         int baudrate)
 {
-  serial_.Open(port);
-  serial_.SetBaudRate(SerialStreamBuf::BAUD_38400);
-  serial_.SetCharSize(SerialStreamBuf::CHAR_SIZE_8);
-  serial_.SetNumOfStopBits(1);
-  serial_.SetParity(SerialStreamBuf::PARITY_NONE);
-  serial_.SetFlowControl(SerialStreamBuf::FLOW_CONTROL_NONE);
-  serial_.SetVMin(0);
-  serial_.SetVTime(1);
-}
+  int fd = -1;
+  struct termios newtio;
+  FILE *fp_ptr = &fp_serial_;
 
-void SerialCommunication::send(const std::string &msg)
-{
-  char output_buffer[BUFFER_SIZE] = "";
-  std::size_t length = msg.copy(output_buffer, msg.size());
-  output_buffer[length] = '\r';
-  output_buffer[length+1] = '\n';
-  for ( unsigned int i = 0; i < BUFFER_SIZE; ++i)
+  fd = open(port.c_str(), O_RDWR | O_NOCTTY | O_NDELAY );
+  if (fd < 0)
+    ROS_ERROR("Could not open serial device %s", port.c_str());
+
+  memset(&newtio, 0, sizeof(newtio));
+
+  newtio.c_cflag =  CS8 | CLOCAL | CREAD; //no parity, 1 stop bit
+  newtio.c_iflag = IGNCR;                 //ignore CR, other options off
+  newtio.c_iflag |= IGNBRK;               //ignore break condition
+  newtio.c_oflag = 0;                     //all options off
+  newtio.c_lflag = ICANON;                //process input as lines
+
+  // Activate the settings
+  tcflush(fd, TCIFLUSH);
+
+  if (cfsetispeed(&newtio, baudrate) < 0 || cfsetospeed(&newtio, baudrate) < 0)
   {
-    ROS_INFO("ASCII Character %i is %i", i, static_cast<int>(output_buffer[i]));
+    ROS_ERROR("Failed to set serial baud rate: %d", baudrate);
+    close(fd);
   }
-  serial_.write(output_buffer,BUFFER_SIZE);
+
+  // Set the baud rate
+  tcsetattr(fd, TCSANOW, &newtio);
+  tcflush(fd, TCIOFLUSH);
+
+  //Open file as a standard I/O stream
+  fp_ptr = fdopen(fd, "r+");
+  if (!fp_ptr)
+    ROS_ERROR("Failed to open serial stream %s", port.c_str());
 }
 
-std::string SerialCommunication::receive()
+SerialCommunication::~SerialCommunication()
 {
-  char input_buffer[BUFFER_SIZE] = "";
-  serial_.read(input_buffer,BUFFER_SIZE);
-  std::string msg(input_buffer);
-  return msg;
+  rcv_.join();
+  fclose(&fp_serial_);
 }
 
-void SerialCommunication::checkSerial(const tf::StampedTransform &transform)
+void SerialCommunication::subscribeTopic(const std::string &topic_name)
 {
-  std::string msg = receive();
-
-  if (msg == "OK")
-    sendTransform(transform);
-  else
-    ROS_ERROR("Received %s", msg.c_str());
+  subscriber_ = node_.subscribe(topic_name,
+                                10,
+                                &SerialCommunication::sendMessage,
+                                this);
 }
 
-void SerialCommunication::sendTransform(const tf::StampedTransform &transform)
+void SerialCommunication::publishTopic(const std::string &topic_name)
 {
-  double x = transform.getOrigin().getX();
-  double y = transform.getOrigin().getY();
-  double z = transform.getOrigin().getZ();
+  publisher_ = node_.advertise<std_msgs::String>(topic_name,
+                                                 10);
+}
 
-  std::stringstream stream;
-  stream << std::setprecision(5) << x << " - " << y << " - " << z;
+void SerialCommunication::sendMessage(const std_msgs::String &msg)
+{
+  ROS_DEBUG("%s", msg.data.c_str());
+  fprintf(&fp_serial_, "%s", msg.data.c_str());
+}
 
-  send(stream.str());
+void SerialCommunication::receiveThread()
+{
+  char buffer[BUFFER_SIZE] = "";
+  char *buffer_ptr;
+  std_msgs::String msg;
+
+  ROS_DEBUG("Receive thread started");
+  while (ros::ok())
+  {
+    buffer_ptr = fgets(buffer, BUFFER_SIZE, &fp_serial_);
+    if (buffer_ptr != 0)
+    {
+      ROS_DEBUG("Received %s", buffer);
+      msg.data = buffer;
+      publisher_.publish(msg);
+    }
+  }
+}
+
+void SerialCommunication::runLoop()
+{
+  // Create receive thread
+  rcv_ = boost::thread(boost::bind(&SerialCommunication::receiveThread, this));
+  ros::spin();
 }
 
 }

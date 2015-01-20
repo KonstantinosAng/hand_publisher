@@ -39,8 +39,18 @@
 #ifndef SERIAL_COMMUNICATION_H
 #define SERIAL_COMMUNICATION_H
 
-#include <SerialStream.h>
+// For ROS specific staff
+#include <ros/ros.h>
+
+// For Subscription
+#include <std_msgs/String.h>
 #include <tf/transform_datatypes.h>
+
+// For Serial Communication
+#include <sys/types.h>
+#include <fcntl.h>
+#include <termios.h>
+#include <boost/thread.hpp>
 
 namespace raad2015 {
 /**
@@ -50,15 +60,23 @@ namespace raad2015 {
 class SerialCommunication
 {
 public:
-  SerialCommunication(const std::string &port = "/dev/ttyUSB0");
-  void send(const std::string &msg);
-  std::string receive();
-  void checkSerial(const tf::StampedTransform &transform);
+  SerialCommunication(const std::string &port = "/dev/ttyUSB0",
+                      int baudrate = B38400);
+  ~SerialCommunication();
+  void subscribeTopic(const std::string &topic_name);
+  void publishTopic(const std::string &topic_name);
+  void runLoop();
 private:
-  void sendTransform(const tf::StampedTransform &transform);
+  void receiveThread();
+  void sendMessage(const std_msgs::String &msg);
 
+  ros::Publisher publisher_;
+  ros::Subscriber subscriber_;
+  ros::NodeHandle node_;
+  boost::thread rcv_;
+  FILE fp_serial_;
   static const int BUFFER_SIZE = 200;
-  LibSerial::SerialStream serial_;
+
 };
 
 }

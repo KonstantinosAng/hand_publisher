@@ -55,9 +55,21 @@ void HandPublisher::init()
   }
 }
 
-tf::StampedTransform HandPublisher::getTransform()
+void HandPublisher::publishTopic(const std::string &topic_name)
 {
-  return (tf_world_to_right_hand_);
+  publisher_ = node_.advertise<std_msgs::String>(topic_name,10);
+}
+
+void HandPublisher::runLoop()
+{
+  ros::Rate rate(10.0);
+  while (ros::ok())
+  {
+    this->updateTransform();
+    this->sendTransform();
+    ros::spinOnce();
+    rate.sleep();
+  }
 }
 
 void HandPublisher::updateTransform()
@@ -73,6 +85,18 @@ void HandPublisher::updateTransform()
   {
     ROS_ERROR("%s", e.what());
   }
+}
+
+void HandPublisher::sendTransform()
+{
+  char tf_string[200];
+  std_msgs::String msg;
+  double x = tf_world_to_right_hand_.getOrigin().x();
+  double y = tf_world_to_right_hand_.getOrigin().y();
+  double z = tf_world_to_right_hand_.getOrigin().z();
+  sprintf(tf_string, "x=%f y=%f z=%f\n", x, y, z);
+  msg.data = tf_string;
+  publisher_.publish(msg);
 }
 
 }

@@ -1,9 +1,10 @@
 <?xml version="1.0"?>
 <launch>
-	<!-- Load OpenNI2 -->
-	<include file="$(find openni2_launch)/launch/openni2.launch" />
 	<!-- Load NiTE Tracker -->
 	<include file="$(find openni2_tracker)/launch/openni2_tracker.launch" />
 	<!-- Load Visualization -->
 	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find hand_publisher)/config/display.rviz" />
+	<!-- Load Tf To String Node -->
+	<node name="tf_to_string" pkg="hand_publisher" type="tf_to_string_node" />
 </launch>
+

@@ -1,5 +1,5 @@
 /*********************************************************************
-* hand_publisher.cpp
+* serial_communication_node.cpp
 *
 * Software License Agreement (BSD License)
 *
@@ -36,46 +36,14 @@
 * Authors: Aris Synodinos
 *********************************************************************/
 
-#include <exception>
-#include <ros/ros.h>
-#include <hand_publisher/config.h>
 #include <hand_publisher/SerialCommunication.h>
-#include <hand_publisher/HandPublisher.h>
-#include <hand_publisher/FabricVision.h>
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "hand_publisher");
-  ros::NodeHandle n;
-
+  ros::init(argc, argv, "serial_communication_node");
   raad2015::SerialCommunication comms;
-  raad2015::HandPublisher hand;
-  raad2015::FabricVision vision;
-
-  std::string package_path(PACKAGE_PATH);
-  std::string open_path(package_path);
-  std::string save_path(package_path);
-  open_path.append("/samples/Lenna.png");
-  save_path.append("/samples/Edited.png");
-  vision.openFile(open_path);
-  vision.showImage("Original Image");
-  vision.toGray();
-  vision.saveFile(save_path);
-  vision.showImage("Edited Image");
-
-//  hand.init();
-/*
-  ros::Rate rate(30);
-  ros::AsyncSpinner spinner(1);
-  spinner.start();
-  while(ros::ok())
-  {
-//    hand.updateTransform();
-//    comms.checkSerial(hand.getTransform());
-    std::string msg = comms.receive();
-    ROS_INFO("%s", msg.c_str());
-    rate.sleep();
-  }
-*/
+  comms.publishTopic("serial_incoming_messages");
+  comms.subscribeTopic("serial_outgoing_messages");
+  comms.runLoop();
   return 0;
 }
