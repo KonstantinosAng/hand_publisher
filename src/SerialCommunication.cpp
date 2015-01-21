@@ -45,7 +45,7 @@ SerialCommunication::SerialCommunication(const std::string &port,
 {
   int fd = -1;
   struct termios newtio;
-  FILE *fp_ptr = &fp_serial_;
+//  FILE *fp_ptr = &fp_serial_;
 
   fd = open(port.c_str(), O_RDWR | O_NOCTTY | O_NDELAY );
   if (fd < 0)
@@ -73,15 +73,16 @@ SerialCommunication::SerialCommunication(const std::string &port,
   tcflush(fd, TCIOFLUSH);
 
   //Open file as a standard I/O stream
-  fp_ptr = fdopen(fd, "r+");
-  if (!fp_ptr)
+  fp_serial_ = fdopen(fd, "r+");
+  if (!fp_serial_)
     ROS_ERROR("Failed to open serial stream %s", port.c_str());
+//  fp_serial_ = *fp_ptr;
 }
 
 SerialCommunication::~SerialCommunication()
 {
   rcv_.join();
-  fclose(&fp_serial_);
+  fclose(fp_serial_);
 }
 
 void SerialCommunication::subscribeTopic(const std::string &topic_name)
@@ -100,8 +101,8 @@ void SerialCommunication::publishTopic(const std::string &topic_name)
 
 void SerialCommunication::sendMessage(const std_msgs::String &msg)
 {
-  ROS_DEBUG("%s", msg.data.c_str());
-  fprintf(&fp_serial_, "%s", msg.data.c_str());
+  ROS_INFO("%s", msg.data.c_str());
+  fprintf(fp_serial_, "%s\r\n", msg.data.c_str());
 }
 
 void SerialCommunication::receiveThread()
@@ -110,13 +111,13 @@ void SerialCommunication::receiveThread()
   char *buffer_ptr;
   std_msgs::String msg;
 
-  ROS_DEBUG("Receive thread started");
+  ROS_INFO("Receive thread started");
   while (ros::ok())
   {
-    buffer_ptr = fgets(buffer, BUFFER_SIZE, &fp_serial_);
+    buffer_ptr = fgets(buffer, BUFFER_SIZE, fp_serial_);
     if (buffer_ptr != 0)
     {
-      ROS_DEBUG("Received %s", buffer);
+      ROS_INFO("Received %s", buffer);
       msg.data = buffer;
       publisher_.publish(msg);
     }

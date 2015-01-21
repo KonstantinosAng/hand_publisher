@@ -94,7 +94,7 @@ void HandPublisher::sendTransform()
   double x = tf_world_to_right_hand_.getOrigin().x();
   double y = tf_world_to_right_hand_.getOrigin().y();
   double z = tf_world_to_right_hand_.getOrigin().z();
-  sprintf(tf_string, "x=%f y=%f z=%f\n", x, y, z);
+  sprintf(tf_string, "%f %f %f", x, y, z);
   msg.data = tf_string;
   publisher_.publish(msg);
 }

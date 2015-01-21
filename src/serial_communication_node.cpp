@@ -42,6 +42,7 @@ int main(int argc, char** argv)
 {
   ros::init(argc, argv, "serial_communication_node");
   raad2015::SerialCommunication comms;
+  ROS_INFO("Successfully created comms object");
   comms.publishTopic("serial_incoming_messages");
   comms.subscribeTopic("serial_outgoing_messages");
   comms.runLoop();
