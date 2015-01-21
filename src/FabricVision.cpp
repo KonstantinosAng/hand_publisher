@@ -40,6 +40,44 @@
 
 namespace raad2015 {
 
+FabricVision::FabricVision() :
+  apply_threshold_(false)
+{
+  lowH_ = 22;
+  lowS_ = 105;
+  lowV_ = 45;
+  highH_ = 38;
+  highS_ = 255;
+  highV_ = 255;
+}
+
+void FabricVision::openCamera(int device)
+{
+  video_ = cv::VideoCapture(device);
+  if (!video_.isOpened())
+    ROS_ERROR("Device %d could not be found", device);
+}
+
+void FabricVision::showCamera(const std::string &window_name)
+{
+  cv::namedWindow(window_name.c_str());
+  while (true)
+  {
+    video_.read(image_);
+    if (apply_threshold_)
+    {
+      toHSV();
+      threshold(lowH_, lowS_, lowV_, highH_, highS_, highV_);
+//      morphologicalOpening(2);
+//      morphologicalClosing(2);
+    }
+
+    cv::imshow(window_name.c_str(), image_);
+    if (cv::waitKey(30) == 1048603) // Escape key
+      break;
+  }
+}
+
 void FabricVision::openFile(const std::string &filename)
 {
   image_ = cv::imread(filename);
@@ -49,7 +87,7 @@ void FabricVision::openFile(const std::string &filename)
 
 void FabricVision::showImage(const std::string &window_name)
 {
-  cv::namedWindow(window_name.c_str(), CV_WINDOW_AUTOSIZE );
+  cv::namedWindow(window_name.c_str(), cv::WINDOW_AUTOSIZE );
   cv::imshow(window_name.c_str(), image_);
   cv::waitKey(0);
 }
@@ -61,7 +99,64 @@ void FabricVision::saveFile(const std::string &filename)
 
 void FabricVision::toGray()
 {
-  cv::cvtColor( image_, image_, CV_BGR2GRAY );
+  cv::cvtColor(image_, image_, cv::COLOR_BGR2GRAY );
+}
+
+void FabricVision::toHSV()
+{
+  cv::cvtColor(image_, image_, cv::COLOR_BGR2HSV);
+}
+
+void FabricVision::toBGR()
+{
+  cv::cvtColor(image_, image_, cv::COLOR_HSV2BGR);
+}
+
+void FabricVision::threshold(int lowH, int lowS, int lowV,
+                             int highH, int highS, int highV)
+{
+  cv::inRange(image_,
+              cv::Scalar(lowH, lowS, lowV),
+              cv::Scalar(highH, highS, highV),
+              image_);
+}
+
+void FabricVision::thresholdGUI(const std::string &window_name)
+{
+  cv::namedWindow(window_name.c_str(), cv::WINDOW_AUTOSIZE);
+  cv::createTrackbar("Low Hue", window_name.c_str(), &lowH_, 179);
+  cv::createTrackbar("High Hue", window_name.c_str(), &highH_, 179);
+  cv::createTrackbar("Low Saturation", window_name.c_str(), &lowS_, 255);
+  cv::createTrackbar("High Saturation", window_name.c_str(), &highS_, 255);
+  cv::createTrackbar("Low Value", window_name.c_str(), &lowV_, 255);
+  cv::createTrackbar("High Value", window_name.c_str(), &highV_, 255);
+  apply_threshold_ = true;
+}
+
+void FabricVision::morphologicalOpening(int radius)
+{
+  cv::erode(image_,
+            image_,
+            cv::getStructuringElement(cv::MORPH_ELLIPSE,
+                                      cv::Size(radius, radius)) );
+
+  cv::dilate( image_,
+              image_,
+              cv::getStructuringElement(cv::MORPH_ELLIPSE,
+                                        cv::Size(radius, radius)) );
+}
+
+void FabricVision::morphologicalClosing(int radius)
+{
+  cv::dilate( image_,
+              image_,
+              cv::getStructuringElement(cv::MORPH_ELLIPSE,
+                                        cv::Size(radius, radius)) );
+
+  cv::erode(image_,
+            image_,
+            cv::getStructuringElement(cv::MORPH_ELLIPSE,
+                                      cv::Size(radius, radius)) );
 }
 
 }

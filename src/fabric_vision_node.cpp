@@ -47,6 +47,7 @@ int main(int argc, char** argv)
 
   raad2015::FabricVision vision;
 
+  /*
   std::string package_path(PACKAGE_PATH);
   std::string open_path(package_path);
   std::string save_path(package_path);
@@ -57,6 +58,11 @@ int main(int argc, char** argv)
   vision.toGray();
   vision.saveFile(save_path);
   vision.showImage("Edited Image");
+  */
+
+  vision.openCamera();
+  vision.thresholdGUI();
+  vision.showCamera();
 
   return 0;
 }

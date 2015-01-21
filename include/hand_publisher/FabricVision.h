@@ -49,12 +49,25 @@ namespace raad2015 {
 class FabricVision
 {
 public:
-    void openFile(const std::string &filename);
-    void showImage(const std::string &window_name = "Display Image");
-    void saveFile(const std::string &filename);
-    void toGray();
+  FabricVision();
+  void openCamera(int device = 0);
+  void showCamera(const std::string &window_name = "Camera Image");
+  void openFile(const std::string &filename);
+  void showImage(const std::string &window_name = "Display Image");
+  void saveFile(const std::string &filename);
+  void toGray();
+  void toHSV();
+  void toBGR();
+  void threshold(int lowH, int lowS, int lowV,
+                 int highH, int highS, int highV);
+  void thresholdGUI(const std::string &window_name = "HSV Control");
+  void morphologicalOpening(int radius = 5);
+  void morphologicalClosing(int radius = 5);
 private:
-    cv::Mat image_;
+  cv::Mat image_;
+  cv::VideoCapture video_;
+  bool apply_threshold_;
+  int lowH_, lowS_, lowV_, highH_, highS_, highV_;
 };
 
 }
