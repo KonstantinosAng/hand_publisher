@@ -47,22 +47,28 @@ int main(int argc, char** argv)
 
   raad2015::FabricVision vision;
 
-  /*
+
   std::string package_path(PACKAGE_PATH);
   std::string open_path(package_path);
-  std::string save_path(package_path);
-  open_path.append("/samples/Lenna.png");
-  save_path.append("/samples/Edited.png");
-  vision.openFile(open_path);
-  vision.showImage("Original Image");
-  vision.toGray();
-  vision.saveFile(save_path);
-  vision.showImage("Edited Image");
-  */
+  open_path.append("/samples/Shapes.png");
+  cv::Mat image = vision.openFile(open_path);
+  vision.toGray(image);
+  vision.toCanny(image);
+  vision.showImage(image);
 
-  vision.openCamera();
-  vision.thresholdGUI();
-  vision.showCamera();
+//  std::string save_path(package_path);
+//  open_path.append("/samples/Lenna.png");
+//  save_path.append("/samples/Edited.png");
+//  vision.openFile(open_path);
+//  vision.showImage("Original Image");
+//  vision.toGray();
+//  vision.saveFile(save_path);
+//  vision.showImage("Edited Image");
+
+//  vision.openCamera();
+//  vision.setApply_threshold(true);
+//  vision.thresholdGUI();
+//  vision.showCamera();
 
   return 0;
 }

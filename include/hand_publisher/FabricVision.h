@@ -50,23 +50,27 @@ class FabricVision
 {
 public:
   FabricVision();
-  void openCamera(int device = 0);
-  void showCamera(const std::string &window_name = "Camera Image");
-  void openFile(const std::string &filename);
-  void showImage(const std::string &window_name = "Display Image");
-  void saveFile(const std::string &filename);
-  void toGray();
-  void toHSV();
-  void toBGR();
-  void threshold(int lowH, int lowS, int lowV,
-                 int highH, int highS, int highV);
-  void thresholdGUI(const std::string &window_name = "HSV Control");
-  void morphologicalOpening(int radius = 5);
-  void morphologicalClosing(int radius = 5);
+  cv::VideoCapture openCamera(int device = 0) const;
+  void showCamera(cv::VideoCapture &camera,
+                  const std::string &window_name = "Camera Image") const;
+  cv::Mat openFile(const std::string &filename);
+  void showImage(const cv::Mat &image,
+                 const std::string &window_name = "Display Image") const;
+  void saveFile(const cv::Mat &image,
+                const std::string &filename) const;
+  void toGray(cv::Mat &image) const;
+  void toHSV(cv::Mat &image) const;
+  void toBGR(cv::Mat &image) const;
+  void toCanny(cv::Mat &image) const;
+  std::vector<std::vector<cv::Point> > findContours(cv::Mat &image) const;
+  void threshold(cv::Mat &image,
+                 int lowH, int lowS, int lowV,
+                 int highH, int highS, int highV) const;
+
+  void morphologicalOpening(cv::Mat& image, int radius = 5);
+  void morphologicalClosing(cv::Mat& image, int radius = 5);
 private:
-  cv::Mat image_;
-  cv::VideoCapture video_;
-  bool apply_threshold_;
+  void thresholdGUI(const std::string &window_name = "HSV Control");
   int lowH_, lowS_, lowV_, highH_, highS_, highV_;
 };
 

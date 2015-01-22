@@ -40,8 +40,7 @@
 
 namespace raad2015 {
 
-FabricVision::FabricVision() :
-  apply_threshold_(false)
+FabricVision::FabricVision()
 {
   lowH_ = 22;
   lowS_ = 105;
@@ -51,74 +50,85 @@ FabricVision::FabricVision() :
   highV_ = 255;
 }
 
-void FabricVision::openCamera(int device)
+cv::VideoCapture FabricVision::openCamera(int device) const
 {
-  video_ = cv::VideoCapture(device);
-  if (!video_.isOpened())
+  cv::VideoCapture video = cv::VideoCapture(device);
+  if (!video.isOpened())
     ROS_ERROR("Device %d could not be found", device);
+  return (video);
 }
 
-void FabricVision::showCamera(const std::string &window_name)
+void FabricVision::showCamera(cv::VideoCapture &camera,
+                              const std::string &window_name) const
 {
+  cv::Mat image;
   cv::namedWindow(window_name.c_str());
   while (true)
   {
-    video_.read(image_);
-    if (apply_threshold_)
-    {
-      toHSV();
-      threshold(lowH_, lowS_, lowV_, highH_, highS_, highV_);
-//      morphologicalOpening(2);
-//      morphologicalClosing(2);
-    }
-
-    cv::imshow(window_name.c_str(), image_);
+    camera.read(image);
+    cv::imshow(window_name.c_str(), image);
     if (cv::waitKey(30) == 1048603) // Escape key
       break;
   }
 }
 
-void FabricVision::openFile(const std::string &filename)
+cv::Mat FabricVision::openFile(const std::string &filename)
 {
-  image_ = cv::imread(filename);
-  if (!image_.data)
+  cv::Mat image = cv::imread(filename);
+  if (!image.data)
     ROS_ERROR("No image data.");
+  return (image);
 }
 
-void FabricVision::showImage(const std::string &window_name)
+void FabricVision::showImage(const cv::Mat &image,
+                             const std::string &window_name) const
 {
   cv::namedWindow(window_name.c_str(), cv::WINDOW_AUTOSIZE );
-  cv::imshow(window_name.c_str(), image_);
+  cv::imshow(window_name.c_str(), image);
   cv::waitKey(0);
 }
 
-void FabricVision::saveFile(const std::string &filename)
+void FabricVision::saveFile(const cv::Mat &image,
+                            const std::string &filename) const
 {
-  cv::imwrite(filename, image_);
+  cv::imwrite(filename, image);
 }
 
-void FabricVision::toGray()
+void FabricVision::toGray(cv::Mat& image) const
 {
-  cv::cvtColor(image_, image_, cv::COLOR_BGR2GRAY );
+  cv::cvtColor(image, image, cv::COLOR_BGR2GRAY );
 }
 
-void FabricVision::toHSV()
+void FabricVision::toHSV(cv::Mat& image) const
 {
-  cv::cvtColor(image_, image_, cv::COLOR_BGR2HSV);
+  cv::cvtColor(image, image, cv::COLOR_BGR2HSV);
 }
 
-void FabricVision::toBGR()
+void FabricVision::toBGR(cv::Mat& image) const
 {
-  cv::cvtColor(image_, image_, cv::COLOR_HSV2BGR);
+  cv::cvtColor(image, image, cv::COLOR_HSV2BGR);
 }
 
-void FabricVision::threshold(int lowH, int lowS, int lowV,
-                             int highH, int highS, int highV)
+void FabricVision::toCanny(cv::Mat& image) const
 {
-  cv::inRange(image_,
+  cv::Canny(image, image, 0, 50, 5);
+}
+
+std::vector<std::vector<cv::Point> > FabricVision::findContours(cv::Mat& image) const
+{
+  std::vector<std::vector<cv::Point> > contours;
+  cv::findContours(image, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+  return (contours);
+}
+
+void FabricVision::threshold(cv::Mat& image,
+                             int lowH, int lowS, int lowV,
+                             int highH, int highS, int highV) const
+{
+  cv::inRange(image,
               cv::Scalar(lowH, lowS, lowV),
               cv::Scalar(highH, highS, highV),
-              image_);
+              image);
 }
 
 void FabricVision::thresholdGUI(const std::string &window_name)
@@ -130,31 +140,32 @@ void FabricVision::thresholdGUI(const std::string &window_name)
   cv::createTrackbar("High Saturation", window_name.c_str(), &highS_, 255);
   cv::createTrackbar("Low Value", window_name.c_str(), &lowV_, 255);
   cv::createTrackbar("High Value", window_name.c_str(), &highV_, 255);
-  apply_threshold_ = true;
 }
 
-void FabricVision::morphologicalOpening(int radius)
+void FabricVision::morphologicalOpening(cv::Mat& image,
+                                        int radius)
 {
-  cv::erode(image_,
-            image_,
+  cv::erode(image,
+            image,
             cv::getStructuringElement(cv::MORPH_ELLIPSE,
                                       cv::Size(radius, radius)) );
 
-  cv::dilate( image_,
-              image_,
+  cv::dilate( image,
+              image,
               cv::getStructuringElement(cv::MORPH_ELLIPSE,
                                         cv::Size(radius, radius)) );
 }
 
-void FabricVision::morphologicalClosing(int radius)
+void FabricVision::morphologicalClosing(cv::Mat& image,
+                                        int radius)
 {
-  cv::dilate( image_,
-              image_,
+  cv::dilate( image,
+              image,
               cv::getStructuringElement(cv::MORPH_ELLIPSE,
                                         cv::Size(radius, radius)) );
 
-  cv::erode(image_,
-            image_,
+  cv::erode(image,
+            image,
             cv::getStructuringElement(cv::MORPH_ELLIPSE,
                                       cv::Size(radius, radius)) );
 }
