@@ -45,6 +45,16 @@
 
 namespace raad2015 {
 
+typedef struct
+{
+  int low_hue;
+  int high_hue;
+  int low_saturation;
+  int high_saturation;
+  int low_value;
+  int high_value;
+} FilterHSV;
+
 
 class FabricVision
 {
@@ -63,15 +73,23 @@ public:
   void toBGR(cv::Mat &image) const;
   void toCanny(cv::Mat &image) const;
   std::vector<std::vector<cv::Point> > findContours(cv::Mat &image) const;
+  cv::Mat setLabels(const cv::Mat& src,
+                 const std::vector<std::vector<cv::Point> >& contours) const;
   void threshold(cv::Mat &image,
-                 int lowH, int lowS, int lowV,
-                 int highH, int highS, int highV) const;
+                 const FilterHSV& filter) const;
 
   void morphologicalOpening(cv::Mat& image, int radius = 5);
   void morphologicalClosing(cv::Mat& image, int radius = 5);
-private:
+  FilterHSV filter() const;
+  void setFilter(const FilterHSV &filter);
   void thresholdGUI(const std::string &window_name = "HSV Control");
-  int lowH_, lowS_, lowV_, highH_, highS_, highV_;
+private:
+  void setLabel(cv::Mat& im,
+                const std::string label,
+                const std::vector<cv::Point>& contour) const;
+  double angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) const;
+
+  FilterHSV filter_;
 };
 
 }

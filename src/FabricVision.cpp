@@ -37,17 +37,18 @@
 *********************************************************************/
 
 #include <hand_publisher/FabricVision.h>
+#include <cmath>
 
 namespace raad2015 {
 
 FabricVision::FabricVision()
 {
-  lowH_ = 22;
-  lowS_ = 105;
-  lowV_ = 45;
-  highH_ = 38;
-  highS_ = 255;
-  highV_ = 255;
+  filter_.low_hue = 22;
+  filter_.low_saturation = 105;
+  filter_.low_value = 45;
+  filter_.high_hue = 38;
+  filter_.high_saturation = 255;
+  filter_.high_value = 255;
 }
 
 cv::VideoCapture FabricVision::openCamera(int device) const
@@ -117,29 +118,103 @@ void FabricVision::toCanny(cv::Mat& image) const
 std::vector<std::vector<cv::Point> > FabricVision::findContours(cv::Mat& image) const
 {
   std::vector<std::vector<cv::Point> > contours;
-  cv::findContours(image, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+  cv::findContours(image.clone(), contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
   return (contours);
 }
 
+cv::Mat FabricVision::setLabels(const cv::Mat& src,
+                             const std::vector<std::vector<cv::Point> > &contours) const
+{
+  // The array for storing the approximation curve
+  std::vector<cv::Point> approx;
+
+  // We'll put the labels in this destination image
+  cv::Mat dst = src.clone();
+
+  for (int i = 0; i < contours.size(); i++)
+  {
+    // Approximate contour with accuracy proportional
+    // to the contour perimeter
+    cv::approxPolyDP(cv::Mat(contours[i]),
+                     approx,
+                     cv::arcLength(cv::Mat(contours[i]), true) * 0.02,
+                     true);
+
+    // Skip small or non-convex objects
+    if (std::fabs(cv::contourArea(contours[i])) < 100 || !cv::isContourConvex(approx))
+      continue;
+
+    if (approx.size() == 3)
+      setLabel(dst, "TRI", contours[i]);    // Triangles
+
+    else if (approx.size() >= 4 && approx.size() <= 6)
+    {
+      // Number of vertices of polygonal curve
+      int vtc = approx.size();
+
+      // Get the degree (in cosines) of all corners
+      std::vector<double> cos;
+      for (int j = 2; j < vtc+1; j++)
+        cos.push_back(angle(approx[j%vtc], approx[j-2], approx[j-1]));
+
+      // Sort ascending the corner degree values
+      std::sort(cos.begin(), cos.end());
+
+      // Get the lowest and the highest degree
+      double mincos = cos.front();
+      double maxcos = cos.back();
+
+      // Use the degrees obtained above and the number of vertices
+      // to determine the shape of the contour
+      if (vtc == 4 && mincos >= -0.1 && maxcos <= 0.3)
+      {
+        // Detect rectangle or square
+        cv::Rect r = cv::boundingRect(contours[i]);
+        double ratio = std::abs(1 - (double)r.width / r.height);
+
+        setLabel(dst, ratio <= 0.02 ? "SQU" : "RECT", contours[i]);
+      }
+      else if (vtc == 5 && mincos >= -0.34 && maxcos <= -0.27)
+        setLabel(dst, "PENTA", contours[i]);
+      else if (vtc == 6 && mincos >= -0.55 && maxcos <= -0.45)
+        setLabel(dst, "HEXA", contours[i]);
+    }
+    else
+    {
+      // Detect and label circles
+      double area = cv::contourArea(contours[i]);
+      cv::Rect r = cv::boundingRect(contours[i]);
+      int radius = r.width / 2;
+
+      if (std::abs(1 - ((double)r.width / r.height)) <= 0.2 &&
+          std::abs(1 - (area / (CV_PI * std::pow(radius, 2)))) <= 0.2)
+      {
+        setLabel(dst, "CIR", contours[i]);
+      }
+    }
+  }
+
+  return (dst);
+}
+
 void FabricVision::threshold(cv::Mat& image,
-                             int lowH, int lowS, int lowV,
-                             int highH, int highS, int highV) const
+                             const FilterHSV& filter) const
 {
   cv::inRange(image,
-              cv::Scalar(lowH, lowS, lowV),
-              cv::Scalar(highH, highS, highV),
+              cv::Scalar(filter.low_hue, filter.low_saturation, filter.low_value),
+              cv::Scalar(filter.high_hue, filter.high_saturation, filter.high_value),
               image);
 }
 
 void FabricVision::thresholdGUI(const std::string &window_name)
 {
   cv::namedWindow(window_name.c_str(), cv::WINDOW_AUTOSIZE);
-  cv::createTrackbar("Low Hue", window_name.c_str(), &lowH_, 179);
-  cv::createTrackbar("High Hue", window_name.c_str(), &highH_, 179);
-  cv::createTrackbar("Low Saturation", window_name.c_str(), &lowS_, 255);
-  cv::createTrackbar("High Saturation", window_name.c_str(), &highS_, 255);
-  cv::createTrackbar("Low Value", window_name.c_str(), &lowV_, 255);
-  cv::createTrackbar("High Value", window_name.c_str(), &highV_, 255);
+  cv::createTrackbar("Low Hue", window_name.c_str(), &filter_.low_hue, 179);
+  cv::createTrackbar("High Hue", window_name.c_str(), &filter_.high_hue, 179);
+  cv::createTrackbar("Low Saturation", window_name.c_str(), &filter_.low_saturation, 255);
+  cv::createTrackbar("High Saturation", window_name.c_str(), &filter_.high_saturation, 255);
+  cv::createTrackbar("Low Value", window_name.c_str(), &filter_.low_value, 255);
+  cv::createTrackbar("High Value", window_name.c_str(), &filter_.high_value, 255);
 }
 
 void FabricVision::morphologicalOpening(cv::Mat& image,
@@ -169,5 +244,41 @@ void FabricVision::morphologicalClosing(cv::Mat& image,
             cv::getStructuringElement(cv::MORPH_ELLIPSE,
                                       cv::Size(radius, radius)) );
 }
+
+void FabricVision::setLabel(cv::Mat& im,
+                            const std::string label,
+                            const std::vector<cv::Point> &contour) const
+{
+  int fontface = cv::FONT_HERSHEY_SIMPLEX;
+  double scale = 0.4;
+  int thickness = 1;
+  int baseline = 0;
+
+  cv::Size text = cv::getTextSize(label, fontface, scale, thickness, &baseline);
+  cv::Rect r = cv::boundingRect(contour);
+
+  cv::Point pt(r.x + ((r.width - text.width) / 2), r.y + ((r.height + text.height) / 2));
+  cv::rectangle(im, pt + cv::Point(0, baseline), pt + cv::Point(text.width, -text.height), CV_RGB(255,255,255), CV_FILLED);
+  cv::putText(im, label, pt, fontface, scale, CV_RGB(0,0,0), thickness, 8);
+}
+
+double FabricVision::angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) const
+{
+  double dx1 = pt1.x - pt0.x;
+  double dy1 = pt1.y - pt0.y;
+  double dx2 = pt2.x - pt0.x;
+  double dy2 = pt2.y - pt0.y;
+  return (dx1*dx2 + dy1*dy2)/sqrt((dx1*dx1 + dy1*dy1)*(dx2*dx2 + dy2*dy2) + 1e-10);
+}
+FilterHSV FabricVision::filter() const
+{
+  return filter_;
+}
+
+void FabricVision::setFilter(const FilterHSV &filter)
+{
+  filter_ = filter;
+}
+
 
 }

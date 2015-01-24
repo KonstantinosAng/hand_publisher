@@ -46,15 +46,40 @@ int main(int argc, char** argv)
   ros::NodeHandle n;
 
   raad2015::FabricVision vision;
+  cv::VideoCapture camera = vision.openCamera();
+  cv::Mat image;
+  std::vector<std::vector<cv::Point> > contours;
 
+  vision.thresholdGUI();
 
+  while (ros::ok())
+  {
+    camera.read(image);
+    vision.toHSV(image);
+    vision.threshold(image, vision.filter());
+//    vision.morphologicalOpening(image,5);
+//    vision.morphologicalClosing(image,5);
+//    vision.toGray(image);
+    vision.toCanny(image);
+    contours = vision.findContours(image);
+    image = vision.setLabels(image, contours);
+    cv::imshow("Labeled", image);
+    cv::waitKey(30);
+//    if (cv::waitKey(30) == 1048603)
+//      break;
+  }
+  /*
   std::string package_path(PACKAGE_PATH);
   std::string open_path(package_path);
   open_path.append("/samples/Shapes.png");
   cv::Mat image = vision.openFile(open_path);
   vision.toGray(image);
   vision.toCanny(image);
-  vision.showImage(image);
+  std::vector<std::vector<cv::Point> > contours;
+  contours = vision.findContours(image);
+  vision.setLabels(image, contours);
+  */
+//  vision.showImage(image);
 
 //  std::string save_path(package_path);
 //  open_path.append("/samples/Lenna.png");
@@ -66,7 +91,6 @@ int main(int argc, char** argv)
 //  vision.showImage("Edited Image");
 
 //  vision.openCamera();
-//  vision.setApply_threshold(true);
 //  vision.thresholdGUI();
 //  vision.showCamera();
 
