@@ -43,8 +43,8 @@ namespace raad2015 {
 
 FabricVision::FabricVision()
 {
-  filter_.low_hue = 22;
-  filter_.low_saturation = 105;
+  filter_.low_hue = 18;
+  filter_.low_saturation = 85;
   filter_.low_value = 45;
   filter_.high_hue = 38;
   filter_.high_saturation = 255;

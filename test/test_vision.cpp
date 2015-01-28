@@ -1,5 +1,5 @@
 /*********************************************************************
-* fabric_vision_node.cpp
+* test_vision.cpp
 *
 * Software License Agreement (BSD License)
 *
@@ -36,16 +36,45 @@
 * Authors: Aris Synodinos
 *********************************************************************/
 
-#include <ros/ros.h>
-#include <hand_publisher/config.h>
+#include <gtest/gtest.h>
 #include <hand_publisher/FabricVision.h>
+#include <hand_publisher/config.h>
 
-int main(int argc, char** argv)
+using namespace raad2015;
+using namespace std;
+
+TEST(Hand_Publisher, Fabric_Vision)
 {
-  ros::init(argc, argv, "fabric_vision_node");
-  ros::NodeHandle n;
+  FabricVision vision;
+  std::string package_path(PACKAGE_PATH);
+  std::string open_path(package_path);
+  std::vector<std::vector<cv::Point> > contours;
 
-  raad2015::FabricVision vision;
 
-  return 0;
+  for (int i = 1; i < 4; ++i )
+  {
+    std::string open_path(package_path);
+    open_path.append("/samples/img");
+    open_path.append(boost::lexical_cast<std::string>(i));
+    open_path.append(".jpg");
+    cv::Mat image = vision.openFile(open_path);
+    vision.toHSV(image);
+    vision.threshold(image, vision.filter());
+    vision.morphologicalOpening(image);
+    vision.morphologicalClosing(image);
+    vision.toCanny(image);
+    contours = vision.findContours(image);
+    image = vision.setLabels(image, contours);
+    std::string save_path(package_path);
+    save_path.append("/samples/edited");
+    save_path.append(boost::lexical_cast<std::string>(i));
+    save_path.append(".jpg");
+    vision.saveFile(image,save_path);
+  }
+}
+
+int main(int argc, char **argv) {
+  testing::InitGoogleTest(&argc, argv);
+  ros::init(argc, argv, "google_test");
+  return RUN_ALL_TESTS();
 }

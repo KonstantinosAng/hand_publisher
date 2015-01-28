@@ -44,3 +44,11 @@ target_link_libraries(fabric_vision_node            ${catkin_LIBRARIES}
 #############
 ## Testing ##
 #############
+
+file(GLOB_RECURSE TESTS ${PROJECT_SOURCE_DIR}/test/*.cpp)
+
+foreach(ITEM ${TESTS})
+    get_filename_component(filename ${ITEM} NAME_WE)
+    catkin_add_gtest(${filename} ${ITEM} src/FabricVision.cpp)
+    target_link_libraries(${filename} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+endforeach()
