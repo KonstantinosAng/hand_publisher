@@ -41,6 +41,8 @@
 
 #include <string>
 #include <ros/ros.h>
+#include <std_msgs/Bool.h>
+#include <std_msgs/Float64MultiArray.h>
 #include <opencv2/opencv.hpp>
 
 namespace raad2015 {
@@ -60,9 +62,15 @@ class FabricVision
 {
 public:
   FabricVision();
-  cv::VideoCapture openCamera(int device = 0) const;
+  void subscribeTopic(const std::string &topic_name);
+  void publishTopic(const std::string &topic_name);
+
+  cv::VideoCapture openCamera(int device = 0);
   void showCamera(cv::VideoCapture &camera,
                   const std::string &window_name = "Camera Image") const;
+  void getFrame();
+  void applyFilters();
+  void showFrame(const std::string &window_name = "Filtered Image") const;
   cv::Mat openFile(const std::string &filename);
   void showImage(const cv::Mat &image,
                  const std::string &window_name = "Display Image") const;
@@ -84,12 +92,21 @@ public:
   void setFilter(const FilterHSV &filter);
   void thresholdGUI(const std::string &window_name = "HSV Control");
 private:
+  void calculateVertices(const std_msgs::Bool &msg);
+
+  cv::RotatedRect findRectangles(const cv::Mat &image,
+                          const std::vector<std::vector<cv::Point> > &contours) const;
   void setLabel(cv::Mat& im,
                 const std::string label,
                 const std::vector<cv::Point>& contour) const;
   double angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) const;
 
   FilterHSV filter_;
+  cv::VideoCapture video_;
+  cv::Mat image_;
+  ros::NodeHandle node_;
+  ros::Publisher publisher_;
+  ros::Subscriber subscriber_;
 };
 
 }

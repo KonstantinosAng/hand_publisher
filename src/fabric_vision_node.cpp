@@ -46,6 +46,19 @@ int main(int argc, char** argv)
   ros::NodeHandle n;
 
   raad2015::FabricVision vision;
+  vision.publishTopic("fabric_vertices");
+  vision.subscribeTopic("fabric_localization_request");
+  vision.openCamera();
+  vision.thresholdGUI();
+  ros::Rate rate(30);
 
+  while(ros::ok())
+  {
+    vision.getFrame();
+    vision.applyFilters();
+    vision.showFrame();
+    ros::spinOnce();
+    rate.sleep();
+  }
   return 0;
 }

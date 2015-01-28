@@ -51,12 +51,47 @@ FabricVision::FabricVision()
   filter_.high_value = 255;
 }
 
-cv::VideoCapture FabricVision::openCamera(int device) const
+void FabricVision::subscribeTopic(const std::string &topic_name)
 {
-  cv::VideoCapture video = cv::VideoCapture(device);
-  if (!video.isOpened())
+  subscriber_ = node_.subscribe(topic_name,
+                                10,
+                                &FabricVision::calculateVertices,
+                                this);
+}
+
+void FabricVision::publishTopic(const std::string &topic_name)
+{
+  publisher_ = node_.advertise<std_msgs::Float64MultiArray>(topic_name,
+                                                            10);
+}
+
+void FabricVision::calculateVertices(const std_msgs::Bool &msg)
+{
+  if (msg.data)
+  {
+    std_msgs::Float64MultiArray vert_msg;
+    cv::Mat image;
+    image = image_.clone();
+    std::vector<std::vector<cv::Point> > contours;
+    contours = findContours(image);
+    cv::RotatedRect r = findRectangles(image, contours);
+    cv::Point2f vertices[4];
+    r.points(vertices);
+    for (int i = 0; i < 4; ++i)
+    {
+      vert_msg.data.push_back(vertices[i].x);
+      vert_msg.data.push_back(vertices[i].y);
+    }
+    publisher_.publish(msg);
+  }
+}
+
+cv::VideoCapture FabricVision::openCamera(int device)
+{
+  video_ = cv::VideoCapture(device);
+  if (!video_.isOpened())
     ROS_ERROR("Device %d could not be found", device);
-  return (video);
+  return (video_);
 }
 
 void FabricVision::showCamera(cv::VideoCapture &camera,
@@ -71,6 +106,31 @@ void FabricVision::showCamera(cv::VideoCapture &camera,
     if (cv::waitKey(30) == 1048603) // Escape key
       break;
   }
+}
+
+void FabricVision::getFrame()
+{
+  if (!video_.isOpened())
+  {
+    ROS_ERROR("Camera not initialized");
+    return;
+  }
+  video_.read(image_);
+}
+
+void FabricVision::applyFilters()
+{
+  toHSV(image_);
+  threshold(image_,filter_);
+  morphologicalOpening(image_);
+  morphologicalClosing(image_);
+  toCanny(image_);
+}
+
+void FabricVision::showFrame(const std::string &window_name) const
+{
+  cv::imshow(window_name, image_);
+  cv::waitKey(30);
 }
 
 cv::Mat FabricVision::openFile(const std::string &filename)
@@ -120,6 +180,36 @@ std::vector<std::vector<cv::Point> > FabricVision::findContours(cv::Mat& image) 
   std::vector<std::vector<cv::Point> > contours;
   cv::findContours(image.clone(), contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
   return (contours);
+}
+
+cv::RotatedRect FabricVision::findRectangles(const cv::Mat &image,
+                                      const std::vector<std::vector<cv::Point> > &contours) const
+{
+  std::vector<cv::Point> approx;
+  for (int i = 0; i < contours.size(); i++)
+  {
+    cv::approxPolyDP(cv::Mat(contours[i]),
+                     approx,
+                     cv::arcLength(cv::Mat(contours[i]), true) * 0.02,
+                     true);
+    if (std::fabs(cv::contourArea(contours[i])) < 100 || !cv::isContourConvex(approx))
+      continue;
+
+    if (approx.size() == 4)
+    {
+      std::vector<double> cos;
+      for (int j = 2; j < 5; j++)
+        cos.push_back(angle(approx[j%approx.size()], approx[j-2], approx[j-1]));
+      std::sort(cos.begin(), cos.end());
+      double mincos = cos.front();
+      double maxcos = cos.back();
+      if (mincos >= -0.1 && maxcos <= 0.3)
+      {
+        cv::RotatedRect r = cv::minAreaRect(contours[i]);
+        return r;
+      }
+    }
+  }
 }
 
 cv::Mat FabricVision::setLabels(const cv::Mat& src,
@@ -172,7 +262,14 @@ cv::Mat FabricVision::setLabels(const cv::Mat& src,
         cv::Rect r = cv::boundingRect(contours[i]);
         double ratio = std::abs(1 - (double)r.width / r.height);
 
-        setLabel(dst, ratio <= 0.02 ? "SQU" : "RECT", contours[i]);
+        // setLabel(dst, ratio <= 0.02 ? "SQU" : "RECT", contours[i]);
+
+        {
+          cv::RotatedRect rot = cv::minAreaRect(contours[i]);
+          std::stringstream lbl;
+          lbl << rot.center << " " << rot.angle;
+          setLabel(dst, lbl.str(), contours[i]);
+        }
       }
       else if (vtc == 5 && mincos >= -0.34 && maxcos <= -0.27)
         setLabel(dst, "PENTA", contours[i]);
