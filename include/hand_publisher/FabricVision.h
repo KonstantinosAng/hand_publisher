@@ -85,25 +85,34 @@ public:
                  const std::vector<std::vector<cv::Point> >& contours) const;
   void threshold(cv::Mat &image,
                  const FilterHSV& filter) const;
-
+  void loadCalibration(const std::string &filename);
   void morphologicalOpening(cv::Mat& image, int radius = 5);
   void morphologicalClosing(cv::Mat& image, int radius = 5);
   FilterHSV filter() const;
   void setFilter(const FilterHSV &filter);
   void thresholdGUI(const std::string &window_name = "HSV Control");
+  cv::Point3f camera_translation() const;
+  void setCamera_translation(const cv::Point3f& camera_translation);
+
 private:
   void calculateVertices(const std_msgs::Bool &msg);
 
   cv::RotatedRect findRectangles(const cv::Mat &image,
-                          const std::vector<std::vector<cv::Point> > &contours) const;
+               const std::vector<std::vector<cv::Point> > &contours) const;
   void setLabel(cv::Mat& im,
                 const std::string label,
                 const std::vector<cv::Point>& contour) const;
+  void undistort(cv::Mat &image);
   double angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) const;
 
   FilterHSV filter_;
   cv::VideoCapture video_;
+  cv::Point3f camera_translation_;
   cv::Mat image_;
+  cv::Mat camera_matrix_;
+  cv::Mat distortion_matrix_;
+  cv::Mat rectification_matrix_;
+  cv::Mat projection_matrix_;
   ros::NodeHandle node_;
   ros::Publisher publisher_;
   ros::Subscriber subscriber_;
