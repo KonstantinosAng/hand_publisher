@@ -47,9 +47,7 @@ TEST(Hand_Publisher, Fabric_Vision)
 {
   FabricVision vision;
   std::string package_path(PACKAGE_PATH);
-  std::string open_path(package_path);
   std::vector<std::vector<cv::Point> > contours;
-
 
   for (int i = 1; i < 4; ++i )
   {
@@ -58,11 +56,7 @@ TEST(Hand_Publisher, Fabric_Vision)
     open_path.append(boost::lexical_cast<std::string>(i));
     open_path.append(".jpg");
     cv::Mat image = vision.openFile(open_path);
-    vision.toHSV(image);
-    vision.threshold(image, vision.filter());
-    vision.morphologicalOpening(image);
-    vision.morphologicalClosing(image);
-    vision.toCanny(image);
+    vision.applyFilters(image);
     contours = vision.findContours(image);
     image = vision.setLabels(image, contours);
     std::string save_path(package_path);

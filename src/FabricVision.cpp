@@ -44,7 +44,7 @@ namespace raad2015 {
 FabricVision::FabricVision()
 {
   filter_.low_hue = 18;
-  filter_.low_saturation = 85;
+  filter_.low_saturation = 45;
   filter_.low_value = 45;
   filter_.high_hue = 38;
   filter_.high_saturation = 255;
@@ -82,9 +82,9 @@ void FabricVision::calculateVertices(const std_msgs::Bool &msg)
     cv::Mat undistorted_mat;
 
     cv::Mat p = projection_matrix_.clone();
-    p.at<float>(0,3) = camera_translation_.x;
-    p.at<float>(1,3) = camera_translation_.y;
-    p.at<float>(2,3) = camera_translation_.z;
+    p.at<double>(0,3) = camera_translation_.x;
+    p.at<double>(1,3) = camera_translation_.y;
+    p.at<double>(2,3) = camera_translation_.z;
 
     cv::undistortPoints(vertices_mat,
                         undistorted_mat,
@@ -93,12 +93,19 @@ void FabricVision::calculateVertices(const std_msgs::Bool &msg)
                         rectification_matrix_,
                         p);
 
+    std::cout << undistorted_mat << std::endl;
+    for (int i = 0; i < vertices_vec.size(); ++i)
+    {
+        std::cout << vertices_vec[i].x << " " << vertices_vec[i].y << std::endl;
+    }
+
+
     for (int i = 0; i < 4; ++i)
     {
       vert_msg.data.push_back(vertices_vec[i].x);
       vert_msg.data.push_back(vertices_vec[i].y);
     }
-    publisher_.publish(msg);
+    publisher_.publish(vert_msg);
   }
 }
 
@@ -141,6 +148,15 @@ void FabricVision::applyFilters()
   morphologicalOpening(image_);
   morphologicalClosing(image_);
   toCanny(image_);
+}
+
+void FabricVision::applyFilters(cv::Mat &image)
+{
+  toHSV(image);
+  threshold(image,filter_);
+  morphologicalOpening(image);
+  morphologicalClosing(image);
+  toCanny(image);
 }
 
 void FabricVision::showFrame(const std::string &window_name) const

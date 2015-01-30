@@ -70,33 +70,33 @@ public:
                   const std::string &window_name = "Camera Image") const;
   void getFrame();
   void applyFilters();
+  void applyFilters(cv::Mat &image);
   void showFrame(const std::string &window_name = "Filtered Image") const;
   cv::Mat openFile(const std::string &filename);
   void showImage(const cv::Mat &image,
                  const std::string &window_name = "Display Image") const;
   void saveFile(const cv::Mat &image,
                 const std::string &filename) const;
-  void toGray(cv::Mat &image) const;
-  void toHSV(cv::Mat &image) const;
-  void toBGR(cv::Mat &image) const;
-  void toCanny(cv::Mat &image) const;
+  void loadCalibration(const std::string &filename);
   std::vector<std::vector<cv::Point> > findContours(cv::Mat &image) const;
   cv::Mat setLabels(const cv::Mat& src,
                  const std::vector<std::vector<cv::Point> >& contours) const;
-  void threshold(cv::Mat &image,
-                 const FilterHSV& filter) const;
-  void loadCalibration(const std::string &filename);
-  void morphologicalOpening(cv::Mat& image, int radius = 5);
-  void morphologicalClosing(cv::Mat& image, int radius = 5);
   FilterHSV filter() const;
   void setFilter(const FilterHSV &filter);
   void thresholdGUI(const std::string &window_name = "HSV Control");
   cv::Point3f camera_translation() const;
   void setCamera_translation(const cv::Point3f& camera_translation);
-
 private:
   void calculateVertices(const std_msgs::Bool &msg);
+  void morphologicalOpening(cv::Mat& image, int radius = 5);
+  void morphologicalClosing(cv::Mat& image, int radius = 5);
+  void toGray(cv::Mat &image) const;
+  void toHSV(cv::Mat &image) const;
+  void toBGR(cv::Mat &image) const;
+  void toCanny(cv::Mat &image) const;
 
+  void threshold(cv::Mat &image,
+                 const FilterHSV& filter) const;
   cv::RotatedRect findRectangles(const cv::Mat &image,
                const std::vector<std::vector<cv::Point> > &contours) const;
   void setLabel(cv::Mat& im,

@@ -49,13 +49,13 @@ int main(int argc, char** argv)
   calibration_path.append("/config/camera_calibration.yml");
 
   raad2015::FabricVision vision;
-  cv::Point3f trans(0.0, 0.0, 0.5);
+  cv::Point3f trans(0.0, 0.0, 1.0);
   vision.setCamera_translation(trans);
   vision.publishTopic("fabric_vertices");
   vision.subscribeTopic("fabric_localization_request");
   vision.loadCalibration(calibration_path);
-  vision.openCamera();
-  vision.thresholdGUI();
+  vision.openCamera(1);
+//  vision.thresholdGUI();
   ros::Rate rate(30);
 
   while(ros::ok())
