@@ -43,20 +43,71 @@ namespace raad2015 {
 
 FabricVision::FabricVision()
 {
-  filter_.low_hue = 22;
-  filter_.low_saturation = 105;
+  filter_.low_hue = 18;
+  filter_.low_saturation = 85;
   filter_.low_value = 45;
   filter_.high_hue = 38;
   filter_.high_saturation = 255;
   filter_.high_value = 255;
 }
 
-cv::VideoCapture FabricVision::openCamera(int device) const
+void FabricVision::subscribeTopic(const std::string &topic_name)
 {
-  cv::VideoCapture video = cv::VideoCapture(device);
-  if (!video.isOpened())
+  subscriber_ = node_.subscribe(topic_name,
+                                10,
+                                &FabricVision::calculateVertices,
+                                this);
+}
+
+void FabricVision::publishTopic(const std::string &topic_name)
+{
+  publisher_ = node_.advertise<std_msgs::Float64MultiArray>(topic_name,
+                                                            10);
+}
+
+void FabricVision::calculateVertices(const std_msgs::Bool &msg)
+{
+  if (msg.data)
+  {
+    std_msgs::Float64MultiArray vert_msg;
+    cv::Mat image;
+    image = image_.clone();
+    std::vector<std::vector<cv::Point> > contours;
+    contours = findContours(image);
+    cv::RotatedRect r = findRectangles(image, contours);
+    cv::Point2f vertices[4];
+    r.points(vertices);
+    std::vector<cv::Point2f> vertices_vec(&vertices[0], &vertices[3]);
+    cv::Mat vertices_mat(vertices_vec, false);
+    cv::Mat undistorted_mat;
+
+    cv::Mat p = projection_matrix_.clone();
+    p.at<float>(0,3) = camera_translation_.x;
+    p.at<float>(1,3) = camera_translation_.y;
+    p.at<float>(2,3) = camera_translation_.z;
+
+    cv::undistortPoints(vertices_mat,
+                        undistorted_mat,
+                        camera_matrix_,
+                        distortion_matrix_,
+                        rectification_matrix_,
+                        p);
+
+    for (int i = 0; i < 4; ++i)
+    {
+      vert_msg.data.push_back(vertices_vec[i].x);
+      vert_msg.data.push_back(vertices_vec[i].y);
+    }
+    publisher_.publish(msg);
+  }
+}
+
+cv::VideoCapture FabricVision::openCamera(int device)
+{
+  video_ = cv::VideoCapture(device);
+  if (!video_.isOpened())
     ROS_ERROR("Device %d could not be found", device);
-  return (video);
+  return (video_);
 }
 
 void FabricVision::showCamera(cv::VideoCapture &camera,
@@ -71,6 +122,31 @@ void FabricVision::showCamera(cv::VideoCapture &camera,
     if (cv::waitKey(30) == 1048603) // Escape key
       break;
   }
+}
+
+void FabricVision::getFrame()
+{
+  if (!video_.isOpened())
+  {
+    ROS_ERROR("Camera not initialized");
+    return;
+  }
+  video_.read(image_);
+}
+
+void FabricVision::applyFilters()
+{
+  toHSV(image_);
+  threshold(image_,filter_);
+  morphologicalOpening(image_);
+  morphologicalClosing(image_);
+  toCanny(image_);
+}
+
+void FabricVision::showFrame(const std::string &window_name) const
+{
+  cv::imshow(window_name, image_);
+  cv::waitKey(30);
 }
 
 cv::Mat FabricVision::openFile(const std::string &filename)
@@ -120,6 +196,36 @@ std::vector<std::vector<cv::Point> > FabricVision::findContours(cv::Mat& image) 
   std::vector<std::vector<cv::Point> > contours;
   cv::findContours(image.clone(), contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
   return (contours);
+}
+
+cv::RotatedRect FabricVision::findRectangles(const cv::Mat &image,
+                                      const std::vector<std::vector<cv::Point> > &contours) const
+{
+  std::vector<cv::Point> approx;
+  for (int i = 0; i < contours.size(); i++)
+  {
+    cv::approxPolyDP(cv::Mat(contours[i]),
+                     approx,
+                     cv::arcLength(cv::Mat(contours[i]), true) * 0.02,
+                     true);
+    if (std::fabs(cv::contourArea(contours[i])) < 100 || !cv::isContourConvex(approx))
+      continue;
+
+    if (approx.size() == 4)
+    {
+      std::vector<double> cos;
+      for (int j = 2; j < 5; j++)
+        cos.push_back(angle(approx[j%approx.size()], approx[j-2], approx[j-1]));
+      std::sort(cos.begin(), cos.end());
+      double mincos = cos.front();
+      double maxcos = cos.back();
+      if (mincos >= -0.1 && maxcos <= 0.3)
+      {
+        cv::RotatedRect r = cv::minAreaRect(contours[i]);
+        return r;
+      }
+    }
+  }
 }
 
 cv::Mat FabricVision::setLabels(const cv::Mat& src,
@@ -172,7 +278,14 @@ cv::Mat FabricVision::setLabels(const cv::Mat& src,
         cv::Rect r = cv::boundingRect(contours[i]);
         double ratio = std::abs(1 - (double)r.width / r.height);
 
-        setLabel(dst, ratio <= 0.02 ? "SQU" : "RECT", contours[i]);
+        // setLabel(dst, ratio <= 0.02 ? "SQU" : "RECT", contours[i]);
+
+        {
+          cv::RotatedRect rot = cv::minAreaRect(contours[i]);
+          std::stringstream lbl;
+          lbl << rot.center << " " << rot.angle;
+          setLabel(dst, lbl.str(), contours[i]);
+        }
       }
       else if (vtc == 5 && mincos >= -0.34 && maxcos <= -0.27)
         setLabel(dst, "PENTA", contours[i]);
@@ -204,6 +317,22 @@ void FabricVision::threshold(cv::Mat& image,
               cv::Scalar(filter.low_hue, filter.low_saturation, filter.low_value),
               cv::Scalar(filter.high_hue, filter.high_saturation, filter.high_value),
               image);
+}
+
+void FabricVision::loadCalibration(const std::string &filename)
+{
+  try
+  {
+    cv::FileStorage fs(filename, cv::FileStorage::READ);
+    fs["camera_matrix"] >> camera_matrix_;
+    fs["open"] >> distortion_matrix_;
+    fs["rectification_matrix"] >> rectification_matrix_;
+    fs["projection_matrix"] >> projection_matrix_;
+  }
+  catch (const cv::Exception &e)
+  {
+    std::cout << e.what() << std::endl;
+  }
 }
 
 void FabricVision::thresholdGUI(const std::string &window_name)
@@ -262,6 +391,11 @@ void FabricVision::setLabel(cv::Mat& im,
   cv::putText(im, label, pt, fontface, scale, CV_RGB(0,0,0), thickness, 8);
 }
 
+void FabricVision::undistort(cv::Mat &image)
+{
+  cv::undistort(image, image, camera_matrix_, distortion_matrix_);
+}
+
 double FabricVision::angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) const
 {
   double dx1 = pt1.x - pt0.x;
@@ -270,6 +404,16 @@ double FabricVision::angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) const
   double dy2 = pt2.y - pt0.y;
   return (dx1*dx2 + dy1*dy2)/sqrt((dx1*dx1 + dy1*dy1)*(dx2*dx2 + dy2*dy2) + 1e-10);
 }
+cv::Point3f FabricVision::camera_translation() const
+{
+  return camera_translation_;
+}
+
+void FabricVision::setCamera_translation(const cv::Point3f& camera_translation)
+{
+  camera_translation_ = camera_translation;
+}
+
 FilterHSV FabricVision::filter() const
 {
   return filter_;

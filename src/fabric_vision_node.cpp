@@ -44,55 +44,27 @@ int main(int argc, char** argv)
 {
   ros::init(argc, argv, "fabric_vision_node");
   ros::NodeHandle n;
+  std::string package_path(PACKAGE_PATH);
+  std::string calibration_path(package_path);
+  calibration_path.append("/config/camera_calibration.yml");
 
   raad2015::FabricVision vision;
-  cv::VideoCapture camera = vision.openCamera();
-  cv::Mat image;
-  std::vector<std::vector<cv::Point> > contours;
-
+  cv::Point3f trans(0.0, 0.0, 0.5);
+  vision.setCamera_translation(trans);
+  vision.publishTopic("fabric_vertices");
+  vision.subscribeTopic("fabric_localization_request");
+  vision.loadCalibration(calibration_path);
+  vision.openCamera();
   vision.thresholdGUI();
+  ros::Rate rate(30);
 
-  while (ros::ok())
+  while(ros::ok())
   {
-    camera.read(image);
-    vision.toHSV(image);
-    vision.threshold(image, vision.filter());
-//    vision.morphologicalOpening(image,5);
-//    vision.morphologicalClosing(image,5);
-//    vision.toGray(image);
-    vision.toCanny(image);
-    contours = vision.findContours(image);
-    image = vision.setLabels(image, contours);
-    cv::imshow("Labeled", image);
-    cv::waitKey(30);
-//    if (cv::waitKey(30) == 1048603)
-//      break;
+    vision.getFrame();
+    vision.applyFilters();
+    vision.showFrame();
+    ros::spinOnce();
+    rate.sleep();
   }
-  /*
-  std::string package_path(PACKAGE_PATH);
-  std::string open_path(package_path);
-  open_path.append("/samples/Shapes.png");
-  cv::Mat image = vision.openFile(open_path);
-  vision.toGray(image);
-  vision.toCanny(image);
-  std::vector<std::vector<cv::Point> > contours;
-  contours = vision.findContours(image);
-  vision.setLabels(image, contours);
-  */
-//  vision.showImage(image);
-
-//  std::string save_path(package_path);
-//  open_path.append("/samples/Lenna.png");
-//  save_path.append("/samples/Edited.png");
-//  vision.openFile(open_path);
-//  vision.showImage("Original Image");
-//  vision.toGray();
-//  vision.saveFile(save_path);
-//  vision.showImage("Edited Image");
-
-//  vision.openCamera();
-//  vision.thresholdGUI();
-//  vision.showCamera();
-
   return 0;
 }
