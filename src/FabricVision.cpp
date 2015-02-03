@@ -72,7 +72,7 @@ void FabricVision::calibrate()
   std::vector<cv::Point3d> board_points;
   for (size_t i = 0; i < 10; ++i)
     for (size_t j = 0; j < 7; ++j)
-      board_points.push_back( cv::Point3d( 2.54*i, 2.54*j, 0.0 ));
+      board_points.push_back( cv::Point3d( 3.4*i, 3.4*j, 0.0 ));
 
   // Try to find checkerboard
   bool found;
@@ -114,13 +114,6 @@ void FabricVision::calculateVertices(const std_msgs::Bool &msg)
     cv::RotatedRect r = findRectangles(image, contours);
     cv::Point2f vertices[4];
     r.points(vertices);
-    std::vector<cv::Point2f> vertices_vec(&vertices[0], &vertices[3]);
-    cv::Mat undistorted_mat;
-
-    cv::undistortPoints(cv::Mat(vertices_vec),
-                        undistorted_mat,
-                        camera_matrix_,
-                        distortion_matrix_);
 
     cv::Mat R_matrix;
     cv::Rodrigues(rvec_, R_matrix);
@@ -134,19 +127,19 @@ void FabricVision::calculateVertices(const std_msgs::Bool &msg)
 
     for (int i = 0; i < 4; ++i)
     {
-      cv::Point3d actual_vert(vertices_vec[i].x, vertices_vec[i].y, 1.0);
+      cv::Point3d actual_vert(vertices[i].x, vertices[i].y, 1.0);
       cv::Mat mat_vert(actual_vert);
       mat_vert = R_matrix * mat_vert;
       mat_vert /= tvec_.at<double>(2,0);
       std::cout << mat_vert << std::endl;
     }
 
-    for (int i = 0; i < 4; ++i)
-    {
-      vert_msg.data.push_back(vertices_vec[i].x);
-      vert_msg.data.push_back(vertices_vec[i].y);
-    }
-    publisher_.publish(vert_msg);
+//    for (int i = 0; i < 4; ++i)
+//    {
+//      vert_msg.data.push_back(vertices[i].x);
+//      vert_msg.data.push_back(vertices[i].y);
+//    }
+//    publisher_.publish(vert_msg);
   }
 }
 

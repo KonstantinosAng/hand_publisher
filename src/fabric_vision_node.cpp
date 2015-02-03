@@ -54,7 +54,7 @@ int main(int argc, char** argv)
   vision.publishTopic("fabric_vertices");
   vision.subscribeTopic("fabric_localization_request");
   vision.loadCalibration(calibration_path);
-  vision.openCamera(0);
+  vision.openCamera(1);
   vision.calibrate();
 //  vision.thresholdGUI();
   ros::Rate rate(30);
