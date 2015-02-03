@@ -36,6 +36,9 @@ add_executable(fabric_vision_node ${HEADERS}        src/fabric_vision_node.cpp
 target_link_libraries(fabric_vision_node            ${catkin_LIBRARIES}
                                                     ${OpenCV_LIBRARIES})
 
+add_executable(coordinate_system                    src/coordinate_system.cpp)
+target_link_libraries(coordinate_system             ${OpenCV_LIBRARIES})
+
 #############
 ## Install ##
 #############
