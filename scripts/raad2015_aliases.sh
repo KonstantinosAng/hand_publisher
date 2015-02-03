@@ -7,3 +7,7 @@ serial_send() {
 serial_rcv() {
 	rostopic echo "/serial_incoming_messages"
 }
+
+fabric_send() {
+	rostopic pub -1 "/fabric_localization_request" std_msgs/Bool -- True
+}

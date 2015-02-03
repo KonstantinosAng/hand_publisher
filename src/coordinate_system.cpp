@@ -3,13 +3,12 @@
 
 #include <stdio.h>
 #include <string>
-#include <cv.h>
-#include <highgui.h>
+#include <iostream>
+#include <iomanip>
+#include <opencv2/opencv.hpp>
 
 using namespace cv;
 using namespace std;
-
-
 
 // Globals ----------------------------------------------------------------------------------------
 
@@ -99,7 +98,6 @@ int main()
 		 //find camera orientation if the chessboard corners have been found
 		 if ( found )
 		 {
-		 	cout << "Found" << endl;
 			 //find the camera extrinsic parameters
 			 solvePnP( Mat(boardPoints), Mat(imagePoints), intrinsics, distortion, rvec, tvec, false );
 
@@ -127,7 +125,7 @@ int main()
 
 			 
 			 //show the pose estimation data
-			 cout << fixed << setprecision(2) << "rvec = ["
+       cout << fixed << setprecision(2) << "rvec = ["
 				  << rvec.at<double>(0,0) << ", "
 				  << rvec.at<double>(1,0) << ", "
 				  << rvec.at<double>(2,0) << "] \t" << "tvec = ["

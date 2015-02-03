@@ -64,7 +64,7 @@ public:
   FabricVision();
   void subscribeTopic(const std::string &topic_name);
   void publishTopic(const std::string &topic_name);
-
+  void calibrate();
   cv::VideoCapture openCamera(int device = 0);
   void showCamera(cv::VideoCapture &camera,
                   const std::string &window_name = "Camera Image") const;
@@ -111,8 +111,8 @@ private:
   cv::Mat image_;
   cv::Mat camera_matrix_;
   cv::Mat distortion_matrix_;
-  cv::Mat rectification_matrix_;
-  cv::Mat projection_matrix_;
+  cv::Mat rvec_;
+  cv::Mat tvec_;
   ros::NodeHandle node_;
   ros::Publisher publisher_;
   ros::Subscriber subscriber_;

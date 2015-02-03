@@ -65,6 +65,43 @@ void FabricVision::publishTopic(const std::string &topic_name)
                                                             10);
 }
 
+void FabricVision::calibrate()
+{
+  cv::Size checkerboard = cv::Size(7,10); // A3 Checkerboard
+  // Create actual board points
+  std::vector<cv::Point3d> board_points;
+  for (size_t i = 0; i < 10; ++i)
+    for (size_t j = 0; j < 7; ++j)
+      board_points.push_back( cv::Point3d( 2.54*i, 2.54*j, 0.0 ));
+
+  // Try to find checkerboard
+  bool found;
+  std::vector<cv::Point2d> found_points;
+  ROS_INFO("Waiting for Checkerboard");
+  while (ros::ok())
+  {
+    this->getFrame();
+    this->toGray(image_);
+    found = cv::findChessboardCorners(image_,
+                                      checkerboard,
+                                      found_points,
+                                      cv::CALIB_CB_FAST_CHECK);
+    if (found)
+    {
+      ROS_INFO("Found Checkerboard");
+      cv::solvePnP(cv::Mat(board_points),
+                   cv::Mat(found_points),
+                   camera_matrix_,
+                   distortion_matrix_,
+                   rvec_,
+                   tvec_,
+                   false);
+      break;
+    }
+  }
+
+}
+
 void FabricVision::calculateVertices(const std_msgs::Bool &msg)
 {
   if (msg.data)
@@ -78,27 +115,31 @@ void FabricVision::calculateVertices(const std_msgs::Bool &msg)
     cv::Point2f vertices[4];
     r.points(vertices);
     std::vector<cv::Point2f> vertices_vec(&vertices[0], &vertices[3]);
-    cv::Mat vertices_mat(vertices_vec, false);
     cv::Mat undistorted_mat;
 
-    cv::Mat p = projection_matrix_.clone();
-    p.at<double>(0,3) = camera_translation_.x;
-    p.at<double>(1,3) = camera_translation_.y;
-    p.at<double>(2,3) = camera_translation_.z;
-
-    cv::undistortPoints(vertices_mat,
+    cv::undistortPoints(cv::Mat(vertices_vec),
                         undistorted_mat,
                         camera_matrix_,
-                        distortion_matrix_,
-                        rectification_matrix_,
-                        p);
+                        distortion_matrix_);
 
-    std::cout << undistorted_mat << std::endl;
-    for (int i = 0; i < vertices_vec.size(); ++i)
+    cv::Mat R_matrix;
+    cv::Rodrigues(rvec_, R_matrix);
+//    std::cout << R_matrix << std::endl;
+//    std::cout << tvec_ << std::endl;
+    R_matrix.at<double>(0,2) = tvec_.at<double>(0,0);
+    R_matrix.at<double>(1,2) = tvec_.at<double>(1,0);
+    R_matrix.at<double>(2,2) = tvec_.at<double>(2,0);
+//    std::cout << R_matrix << std::endl;
+
+
+    for (int i = 0; i < 4; ++i)
     {
-        std::cout << vertices_vec[i].x << " " << vertices_vec[i].y << std::endl;
+      cv::Point3d actual_vert(vertices_vec[i].x, vertices_vec[i].y, 1.0);
+      cv::Mat mat_vert(actual_vert);
+      mat_vert = R_matrix * mat_vert;
+      mat_vert /= tvec_.at<double>(2,0);
+      std::cout << mat_vert << std::endl;
     }
-
 
     for (int i = 0; i < 4; ++i)
     {
@@ -342,8 +383,7 @@ void FabricVision::loadCalibration(const std::string &filename)
     cv::FileStorage fs(filename, cv::FileStorage::READ);
     fs["camera_matrix"] >> camera_matrix_;
     fs["open"] >> distortion_matrix_;
-    fs["rectification_matrix"] >> rectification_matrix_;
-    fs["projection_matrix"] >> projection_matrix_;
+    fs.release();
   }
   catch (const cv::Exception &e)
   {
@@ -420,6 +460,7 @@ double FabricVision::angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) const
   double dy2 = pt2.y - pt0.y;
   return (dx1*dx2 + dy1*dy2)/sqrt((dx1*dx1 + dy1*dy1)*(dx2*dx2 + dy2*dy2) + 1e-10);
 }
+
 cv::Point3f FabricVision::camera_translation() const
 {
   return camera_translation_;
@@ -439,6 +480,5 @@ void FabricVision::setFilter(const FilterHSV &filter)
 {
   filter_ = filter;
 }
-
 
 }
