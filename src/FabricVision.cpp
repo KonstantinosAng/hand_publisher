@@ -38,8 +38,15 @@
 
 #include <hand_publisher/FabricVision.h>
 #include <cmath>
+#include <hand_publisher/config.h>
 
 namespace raad2015 {
+
+cv::Scalar Color::ColorBlue(255, 0, 0);
+cv::Scalar Color::ColorRed(0, 0, 255);
+cv::Scalar Color::ColorGreen(0, 255, 0);
+cv::Scalar Color::ColorWhite(255, 255, 255);
+cv::Scalar Color::ColorBlack(0, 0, 0);
 
 FabricVision::FabricVision() {
   filter_.low_hue = 18;
@@ -78,8 +85,12 @@ void FabricVision::calibrate() {
                                       cv::CALIB_CB_FAST_CHECK);
     if (found) {
       ROS_INFO("Found Checkerboard");
+      cv::Mat rvec;
       cv::solvePnP(cv::Mat(board_points), cv::Mat(found_points), camera_matrix_,
-                   distortion_matrix_, rvec_, tvec_, false);
+                   distortion_matrix_, rvec, tvec_, false);
+      cv::Rodrigues(rvec, rmat_);
+      cv::Mat scale_mat = camera_matrix_ * ( rmat_ * cv::Mat(board_points[0]) + tvec_ );
+      scale_ = scale_mat.at<double>(0,2);
       break;
     }
   }
@@ -103,10 +114,74 @@ void FabricVision::calibrate(int i) {
                                       cv::CALIB_CB_FAST_CHECK);
     if (found) {
       ROS_INFO("Found Checkerboard");
+      cv::Mat rvec;
       cv::solvePnP(cv::Mat(board_points), cv::Mat(found_points), camera_matrix_,
-                   distortion_matrix_, rvec_, tvec_, false);
+                   distortion_matrix_, rvec, tvec_);
+      cv::Rodrigues(rvec, rmat_);
+      cv::Mat scale_mat = camera_matrix_ * ( rmat_ * cv::Mat(board_points[0]) + tvec_ );
+      scale_ = scale_mat.at<double>(0,2);
       break;
     }
+  }
+}
+
+void FabricVision::embedOrigin(cv::Mat &drawing)
+{
+  cv::Mat projected_origin = cv::Mat(cv::Point3d(0.0,0.0,1.0));
+  cv::Mat projected_x = cv::Mat(cv::Point3d(5.0, 0.0, 1.0));
+  cv::Mat projected_y = cv::Mat(cv::Point3d(0.0, 5.0, 1.0));
+  cv::Mat origin = camera_matrix_ * ( rmat_ * projected_origin + tvec_ );
+  origin /= scale_;
+  cv::Mat origin_x = camera_matrix_ * ( rmat_ * projected_x + tvec_ );
+  origin_x /= scale_;
+  cv::Mat origin_y = camera_matrix_ * ( rmat_ * projected_y + tvec_ );
+  origin_y /= scale_;
+  cv::circle(drawing, cv::Point2d(origin.at<double>(0,0),
+                                  origin.at<double>(0,1)),
+             3, Color::ColorRed, 5);
+  cv::line(drawing,
+           cv::Point2d(origin.at<double>(0,0),
+                                origin.at<double>(0,1)),
+           cv::Point2d(origin_x.at<double>(0,0),
+                       origin_x.at<double>(0,1)),
+           Color::ColorRed, 3, 8);
+  cv::line(drawing,
+           cv::Point2d(origin.at<double>(0,0),
+                       origin.at<double>(0,1)),
+           cv::Point2d(origin_y.at<double>(0,0),
+                       origin_y.at<double>(0,1)),
+           Color::ColorRed, 3, 8);
+}
+
+void FabricVision::calculateVertices() {
+  std_msgs::Float64MultiArray vert_msg;
+  cv::Mat image;
+  image = image_.clone();
+  std::vector<std::vector<cv::Point> > contours;
+  contours = findContours(image);
+  cv::RotatedRect r = findRectangles(image, contours);
+  cv::Point2f vertices[4];
+  r.points(vertices);
+
+  for( int j = 0; j < 4; j++ )
+    cv::line(real_image_, vertices[j], vertices[(j+1)%4],
+        Color::ColorWhite, 1, 8 );
+  for( int j = 0; j < 4; j++ )
+    cv::circle(real_image_, vertices[j], 3, Color::ColorBlue, 5);
+
+  embedOrigin(real_image_);
+
+  std::string path(PACKAGE_PATH);
+  path.append("/samples/identified.jpg");
+  this->saveFile(real_image_,path);
+
+  for (int i = 0; i < 4; ++i) {
+    cv::Mat vert_pnt = cv::Mat(cv::Point3d(vertices[i].x, vertices[i].y, 1.0));
+    cv::Mat result = rmat_.inv() * camera_matrix_.inv() * scale_ * vert_pnt -
+                     rmat_.inv() * tvec_;
+    vert_msg.data.push_back(result.at<double>(0,0));
+    vert_msg.data.push_back(result.at<double>(0,1));
+    std::cout << "Result " << result << std::endl;
   }
 }
 
@@ -120,44 +195,28 @@ void FabricVision::calculateVertices(const std_msgs::Bool &msg) {
     cv::RotatedRect r = findRectangles(image, contours);
     cv::Point2f vertices[4];
     r.points(vertices);
-    std::vector<cv::Point3d> vert_vec;
-    cv::Mat results;
-    cv::Mat R_matrix;
-    cv::Rodrigues(rvec_, R_matrix);
-//    //    std::cout << R_matrix << std::endl;
-//    //    std::cout << "T: \n" << tvec_ << std::endl;
-//    R_matrix.at<double>(0, 2) = 0.0;
-//    R_matrix.at<double>(1, 2) = 0.0;
-//    R_matrix.at<double>(2, 2) = tvec_.at<double>(2, 0);
-    //    std::cout << R_matrix << std::endl;
+
+    for( int j = 0; j < 4; j++ )
+      cv::line(real_image_, vertices[j], vertices[(j+1)%4],
+          Color::ColorWhite, 1, 8 );
+    for( int j = 0; j < 4; j++ )
+      cv::circle(real_image_, vertices[j], 3, Color::ColorBlue, 5);
+
+    embedOrigin(real_image_);
+
+    std::string path(PACKAGE_PATH);
+    path.append("/samples/identified.jpg");
+    this->saveFile(real_image_,path);
 
     for (int i = 0; i < 4; ++i) {
-      vert_vec.push_back(cv::Point3d(vertices[i].x, vertices[i].y, 0.0));
-      results = R_matrix.inv() * ( cv::Mat(vert_vec[i]) - cv::Mat(tvec_) );
-      std::cout << results << std::endl;
+      cv::Mat vert_pnt = cv::Mat(cv::Point3d(vertices[i].x, vertices[i].y, 1.0));
+      cv::Mat result = rmat_.inv() * camera_matrix_.inv() * scale_ * vert_pnt -
+                       rmat_.inv() * tvec_;
+      vert_msg.data.push_back(result.at<double>(0,0));
+      vert_msg.data.push_back(result.at<double>(0,1));
+//      std::cout << "Result " << result << std::endl;
     }
-
-//    cv::projectPoints(vert_vec, rvec_, tvec_, camera_matrix_,
-//                      distortion_matrix_, results);
-
-//      cv::Point3d actual_vert(vertices[i].x, vertices[i].y, 1.0);
-//      cv::Mat mat_vert(actual_vert);
-//      mat_vert = R_matrix * mat_vert;
-//      mat_vert /= tvec_.at<double>(2, 0);
-//      std::cout << "Trans" << perspectiveTransformation_ << std::endl;
-
-//      cv::perspectiveTransform(cv::Mat(vert_vec),
-//                               world_vertices,
-//                               perspectiveTransformation_);
-//    }
-//    std::cout << "World:\n" << world_vertices << std::endl;
-
-    //    for (int i = 0; i < 4; ++i)
-    //    {
-    //      vert_msg.data.push_back(vertices[i].x);
-    //      vert_msg.data.push_back(vertices[i].y);
-    //    }
-    //    publisher_.publish(vert_msg);
+    publisher_.publish(vert_msg);
   }
 }
 
@@ -205,6 +264,12 @@ void FabricVision::applyFilters(cv::Mat &image) {
 
 void FabricVision::showFrame(const std::string &window_name) const {
   cv::imshow(window_name, image_);
+  cv::waitKey(30);
+}
+
+void FabricVision::showFrame(const cv::Mat &image,
+                             const std::string &window_name) const {
+  cv::imshow(window_name, image);
   cv::waitKey(30);
 }
 
@@ -419,7 +484,7 @@ void FabricVision::setLabel(cv::Mat &im, const std::string label,
 }
 
 void FabricVision::undistort(cv::Mat &image) {
-  cv::undistort(image, image, camera_matrix_, distortion_matrix_);
+  cv::undistortPoints(image, image, camera_matrix_, distortion_matrix_);
 }
 
 double FabricVision::angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) const {
@@ -430,19 +495,19 @@ double FabricVision::angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) const {
   return (dx1 * dx2 + dy1 * dy2) /
          sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
 }
+cv::Mat FabricVision::real_image() const
+{
+  return real_image_;
+}
+
+void FabricVision::setReal_image(const cv::Mat& real_image)
+{
+  real_image_ = real_image;
+}
 
 cv::Mat FabricVision::image() const { return image_; }
 
 void FabricVision::setImage(const cv::Mat &image) { image_ = image; }
-
-cv::Point3f FabricVision::camera_translation() const {
-  return camera_translation_;
-}
-
-void FabricVision::setCamera_translation(
-    const cv::Point3f &camera_translation) {
-  camera_translation_ = camera_translation;
-}
 
 FilterHSV FabricVision::filter() const { return filter_; }
 

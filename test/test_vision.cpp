@@ -74,14 +74,13 @@ TEST(Hand_Publisher, Localization) {
   std::string open_path(package_path);
   open_path.append("/samples/testing.jpg");
   vision.loadCalibration(calibration_path);
+  vision.setReal_image(vision.openFile(open_path));
   vision.setImage(vision.openFile(open_path));
   vision.calibrate(1);
   // Reload the images
   vision.setImage(vision.openFile(open_path));
   vision.applyFilters();
-  std_msgs::Bool flag;
-  flag.data = true;
-  vision.calculateVertices(flag);
+  vision.calculateVertices();
 }
 
 int main(int argc, char **argv) {

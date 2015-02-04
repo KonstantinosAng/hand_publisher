@@ -53,13 +53,16 @@ int main(int argc, char **argv) {
   vision.loadCalibration(calibration_path);
   vision.openCamera(1);
   vision.calibrate();
+  cv::Mat real_frame;
   //  vision.thresholdGUI();
   ros::Rate rate(30);
 
   while (ros::ok()) {
     vision.getFrame();
+    real_frame = vision.image().clone();
+    vision.embedOrigin(real_frame);
+    vision.showFrame(real_frame);
     vision.applyFilters();
-    vision.showFrame();
     ros::spinOnce();
     rate.sleep();
   }

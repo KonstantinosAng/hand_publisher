@@ -47,6 +47,17 @@
 
 namespace raad2015 {
 
+class Color
+{
+public:
+  static cv::Scalar ColorBlue;
+  static cv::Scalar ColorRed;
+  static cv::Scalar ColorGreen;
+  static cv::Scalar ColorWhite;
+  static cv::Scalar ColorBlack;
+};
+
+
 typedef struct {
   int low_hue;
   int high_hue;
@@ -63,6 +74,7 @@ public:
   void publishTopic(const std::string &topic_name);
   void calibrate();
   void calibrate(int i);
+  void calculateVertices();
   cv::VideoCapture openCamera(int device = 0);
   void showCamera(cv::VideoCapture &camera,
                   const std::string &window_name = "Camera Image") const;
@@ -70,6 +82,8 @@ public:
   void applyFilters();
   void applyFilters(cv::Mat &image);
   void showFrame(const std::string &window_name = "Filtered Image") const;
+  void showFrame(const cv::Mat &image,
+                 const std::string &window_name = "Image") const;
   cv::Mat openFile(const std::string &filename);
   void showImage(const cv::Mat &image,
                  const std::string &window_name = "Display Image") const;
@@ -81,12 +95,13 @@ public:
   FilterHSV filter() const;
   void setFilter(const FilterHSV &filter);
   void thresholdGUI(const std::string &window_name = "HSV Control");
-  cv::Point3f camera_translation() const;
-  void setCamera_translation(const cv::Point3f &camera_translation);
 
   cv::Mat image() const;
   void setImage(const cv::Mat& image);
-  void calculateVertices(const std_msgs::Bool &msg);
+
+  void embedOrigin(cv::Mat &drawing);
+  cv::Mat real_image() const;
+  void setReal_image(const cv::Mat& real_image);
 
 private:
   void morphologicalOpening(cv::Mat &image, int radius = 5);
@@ -95,7 +110,6 @@ private:
   void toHSV(cv::Mat &image) const;
   void toBGR(cv::Mat &image) const;
   void toCanny(cv::Mat &image) const;
-
   void threshold(cv::Mat &image, const FilterHSV &filter) const;
   cv::RotatedRect
   findRectangles(const cv::Mat &image,
@@ -104,16 +118,17 @@ private:
                 const std::vector<cv::Point> &contour) const;
   void undistort(cv::Mat &image);
   double angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) const;
+  void calculateVertices(const std_msgs::Bool &msg);
 
   FilterHSV filter_;
   cv::VideoCapture video_;
-  cv::Point3f camera_translation_;
+  cv::Mat real_image_;
   cv::Mat image_;
   cv::Mat camera_matrix_;
   cv::Mat distortion_matrix_;
-  cv::Mat rvec_;
+  cv::Mat rmat_;
   cv::Mat tvec_;
-  double x_scale_, y_scale_;
+  double scale_;
   ros::NodeHandle node_;
   ros::Publisher publisher_;
   ros::Subscriber subscriber_;
