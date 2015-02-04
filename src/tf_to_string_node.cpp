@@ -38,8 +38,7 @@
 
 #include <hand_publisher/HandPublisher.h>
 
-int main(int argc, char** argv)
-{
+int main(int argc, char **argv) {
   ros::init(argc, argv, "tf_to_string_node");
   raad2015::HandPublisher hand;
   hand.init();

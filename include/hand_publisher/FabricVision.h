@@ -47,8 +47,7 @@
 
 namespace raad2015 {
 
-typedef struct
-{
+typedef struct {
   int low_hue;
   int high_hue;
   int low_saturation;
@@ -57,14 +56,13 @@ typedef struct
   int high_value;
 } FilterHSV;
 
-
-class FabricVision
-{
+class FabricVision {
 public:
   FabricVision();
   void subscribeTopic(const std::string &topic_name);
   void publishTopic(const std::string &topic_name);
   void calibrate();
+  void calibrate(int i);
   cv::VideoCapture openCamera(int device = 0);
   void showCamera(cv::VideoCapture &camera,
                   const std::string &window_name = "Camera Image") const;
@@ -75,33 +73,35 @@ public:
   cv::Mat openFile(const std::string &filename);
   void showImage(const cv::Mat &image,
                  const std::string &window_name = "Display Image") const;
-  void saveFile(const cv::Mat &image,
-                const std::string &filename) const;
+  void saveFile(const cv::Mat &image, const std::string &filename) const;
   void loadCalibration(const std::string &filename);
   std::vector<std::vector<cv::Point> > findContours(cv::Mat &image) const;
-  cv::Mat setLabels(const cv::Mat& src,
-                 const std::vector<std::vector<cv::Point> >& contours) const;
+  cv::Mat setLabels(const cv::Mat &src,
+                    const std::vector<std::vector<cv::Point> > &contours) const;
   FilterHSV filter() const;
   void setFilter(const FilterHSV &filter);
   void thresholdGUI(const std::string &window_name = "HSV Control");
   cv::Point3f camera_translation() const;
-  void setCamera_translation(const cv::Point3f& camera_translation);
-private:
+  void setCamera_translation(const cv::Point3f &camera_translation);
+
+  cv::Mat image() const;
+  void setImage(const cv::Mat& image);
   void calculateVertices(const std_msgs::Bool &msg);
-  void morphologicalOpening(cv::Mat& image, int radius = 5);
-  void morphologicalClosing(cv::Mat& image, int radius = 5);
+
+private:
+  void morphologicalOpening(cv::Mat &image, int radius = 5);
+  void morphologicalClosing(cv::Mat &image, int radius = 5);
   void toGray(cv::Mat &image) const;
   void toHSV(cv::Mat &image) const;
   void toBGR(cv::Mat &image) const;
   void toCanny(cv::Mat &image) const;
 
-  void threshold(cv::Mat &image,
-                 const FilterHSV& filter) const;
-  cv::RotatedRect findRectangles(const cv::Mat &image,
-               const std::vector<std::vector<cv::Point> > &contours) const;
-  void setLabel(cv::Mat& im,
-                const std::string label,
-                const std::vector<cv::Point>& contour) const;
+  void threshold(cv::Mat &image, const FilterHSV &filter) const;
+  cv::RotatedRect
+  findRectangles(const cv::Mat &image,
+                 const std::vector<std::vector<cv::Point> > &contours) const;
+  void setLabel(cv::Mat &im, const std::string label,
+                const std::vector<cv::Point> &contour) const;
   void undistort(cv::Mat &image);
   double angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) const;
 
@@ -113,11 +113,11 @@ private:
   cv::Mat distortion_matrix_;
   cv::Mat rvec_;
   cv::Mat tvec_;
+  double x_scale_, y_scale_;
   ros::NodeHandle node_;
   ros::Publisher publisher_;
   ros::Subscriber subscriber_;
 };
-
 }
 
 #endif

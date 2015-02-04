@@ -41,8 +41,7 @@
 
 namespace raad2015 {
 
-FabricVision::FabricVision()
-{
+FabricVision::FabricVision() {
   filter_.low_hue = 18;
   filter_.low_saturation = 45;
   filter_.low_value = 45;
@@ -51,61 +50,68 @@ FabricVision::FabricVision()
   filter_.high_value = 255;
 }
 
-void FabricVision::subscribeTopic(const std::string &topic_name)
-{
-  subscriber_ = node_.subscribe(topic_name,
-                                10,
-                                &FabricVision::calculateVertices,
-                                this);
+void FabricVision::subscribeTopic(const std::string &topic_name) {
+  subscriber_ =
+      node_.subscribe(topic_name, 10, &FabricVision::calculateVertices, this);
 }
 
-void FabricVision::publishTopic(const std::string &topic_name)
-{
-  publisher_ = node_.advertise<std_msgs::Float64MultiArray>(topic_name,
-                                                            10);
+void FabricVision::publishTopic(const std::string &topic_name) {
+  publisher_ = node_.advertise<std_msgs::Float64MultiArray>(topic_name, 10);
 }
 
-void FabricVision::calibrate()
-{
-  cv::Size checkerboard = cv::Size(7,10); // A3 Checkerboard
+void FabricVision::calibrate() {
+  cv::Size checkerboard = cv::Size(7, 10);  // A3 Checkerboard
   // Create actual board points
   std::vector<cv::Point3d> board_points;
   for (size_t i = 0; i < 10; ++i)
     for (size_t j = 0; j < 7; ++j)
-      board_points.push_back( cv::Point3d( 3.4*i, 3.4*j, 0.0 ));
+      board_points.push_back(cv::Point3d(3.4 * i, 3.4 * j, 0.0));
 
   // Try to find checkerboard
   bool found;
   std::vector<cv::Point2d> found_points;
   ROS_INFO("Waiting for Checkerboard");
-  while (ros::ok())
-  {
+  while (ros::ok()) {
     this->getFrame();
     this->toGray(image_);
-    found = cv::findChessboardCorners(image_,
-                                      checkerboard,
-                                      found_points,
+    found = cv::findChessboardCorners(image_, checkerboard, found_points,
                                       cv::CALIB_CB_FAST_CHECK);
-    if (found)
-    {
+    if (found) {
       ROS_INFO("Found Checkerboard");
-      cv::solvePnP(cv::Mat(board_points),
-                   cv::Mat(found_points),
-                   camera_matrix_,
-                   distortion_matrix_,
-                   rvec_,
-                   tvec_,
-                   false);
+      cv::solvePnP(cv::Mat(board_points), cv::Mat(found_points), camera_matrix_,
+                   distortion_matrix_, rvec_, tvec_, false);
       break;
     }
   }
-
 }
 
-void FabricVision::calculateVertices(const std_msgs::Bool &msg)
-{
-  if (msg.data)
-  {
+void FabricVision::calibrate(int i) {
+  cv::Size checkerboard = cv::Size(7, 10);  // A3 Checkerboard
+  // Create actual board points
+  std::vector<cv::Point3d> board_points;
+  for (size_t i = 0; i < 10; ++i)
+    for (size_t j = 0; j < 7; ++j)
+      board_points.push_back(cv::Point3d(3.4 * i, 3.4 * j, 0.0));
+
+  // Try to find checkerboard
+  bool found;
+  std::vector<cv::Point2d> found_points;
+  ROS_INFO("Waiting for Checkerboard");
+  while (ros::ok()) {
+    this->toGray(image_);
+    found = cv::findChessboardCorners(image_, checkerboard, found_points,
+                                      cv::CALIB_CB_FAST_CHECK);
+    if (found) {
+      ROS_INFO("Found Checkerboard");
+      cv::solvePnP(cv::Mat(board_points), cv::Mat(found_points), camera_matrix_,
+                   distortion_matrix_, rvec_, tvec_, false);
+      break;
+    }
+  }
+}
+
+void FabricVision::calculateVertices(const std_msgs::Bool &msg) {
+  if (msg.data) {
     std_msgs::Float64MultiArray vert_msg;
     cv::Mat image;
     image = image_.clone();
@@ -114,163 +120,156 @@ void FabricVision::calculateVertices(const std_msgs::Bool &msg)
     cv::RotatedRect r = findRectangles(image, contours);
     cv::Point2f vertices[4];
     r.points(vertices);
-
+    std::vector<cv::Point3d> vert_vec;
+    cv::Mat results;
     cv::Mat R_matrix;
     cv::Rodrigues(rvec_, R_matrix);
-//    std::cout << R_matrix << std::endl;
-//    std::cout << tvec_ << std::endl;
-    R_matrix.at<double>(0,2) = tvec_.at<double>(0,0);
-    R_matrix.at<double>(1,2) = tvec_.at<double>(1,0);
-    R_matrix.at<double>(2,2) = tvec_.at<double>(2,0);
-//    std::cout << R_matrix << std::endl;
+//    //    std::cout << R_matrix << std::endl;
+//    //    std::cout << "T: \n" << tvec_ << std::endl;
+//    R_matrix.at<double>(0, 2) = 0.0;
+//    R_matrix.at<double>(1, 2) = 0.0;
+//    R_matrix.at<double>(2, 2) = tvec_.at<double>(2, 0);
+    //    std::cout << R_matrix << std::endl;
 
-
-    for (int i = 0; i < 4; ++i)
-    {
-      cv::Point3d actual_vert(vertices[i].x, vertices[i].y, 1.0);
-      cv::Mat mat_vert(actual_vert);
-      mat_vert = R_matrix * mat_vert;
-      mat_vert /= tvec_.at<double>(2,0);
-      std::cout << mat_vert << std::endl;
+    for (int i = 0; i < 4; ++i) {
+      vert_vec.push_back(cv::Point3d(vertices[i].x, vertices[i].y, 0.0));
+      results = R_matrix.inv() * ( cv::Mat(vert_vec[i]) - cv::Mat(tvec_) );
+      std::cout << results << std::endl;
     }
 
-//    for (int i = 0; i < 4; ++i)
-//    {
-//      vert_msg.data.push_back(vertices[i].x);
-//      vert_msg.data.push_back(vertices[i].y);
+//    cv::projectPoints(vert_vec, rvec_, tvec_, camera_matrix_,
+//                      distortion_matrix_, results);
+
+//      cv::Point3d actual_vert(vertices[i].x, vertices[i].y, 1.0);
+//      cv::Mat mat_vert(actual_vert);
+//      mat_vert = R_matrix * mat_vert;
+//      mat_vert /= tvec_.at<double>(2, 0);
+//      std::cout << "Trans" << perspectiveTransformation_ << std::endl;
+
+//      cv::perspectiveTransform(cv::Mat(vert_vec),
+//                               world_vertices,
+//                               perspectiveTransformation_);
 //    }
-//    publisher_.publish(vert_msg);
+//    std::cout << "World:\n" << world_vertices << std::endl;
+
+    //    for (int i = 0; i < 4; ++i)
+    //    {
+    //      vert_msg.data.push_back(vertices[i].x);
+    //      vert_msg.data.push_back(vertices[i].y);
+    //    }
+    //    publisher_.publish(vert_msg);
   }
 }
 
-cv::VideoCapture FabricVision::openCamera(int device)
-{
+cv::VideoCapture FabricVision::openCamera(int device) {
   video_ = cv::VideoCapture(device);
-  if (!video_.isOpened())
-    ROS_ERROR("Device %d could not be found", device);
+  if (!video_.isOpened()) ROS_ERROR("Device %d could not be found", device);
   return (video_);
 }
 
 void FabricVision::showCamera(cv::VideoCapture &camera,
-                              const std::string &window_name) const
-{
+                              const std::string &window_name) const {
   cv::Mat image;
   cv::namedWindow(window_name.c_str());
-  while (true)
-  {
+  while (true) {
     camera.read(image);
     cv::imshow(window_name.c_str(), image);
-    if (cv::waitKey(30) == 1048603) // Escape key
+    if (cv::waitKey(30) == 1048603)  // Escape key
       break;
   }
 }
 
-void FabricVision::getFrame()
-{
-  if (!video_.isOpened())
-  {
+void FabricVision::getFrame() {
+  if (!video_.isOpened()) {
     ROS_ERROR("Camera not initialized");
     return;
   }
   video_.read(image_);
 }
 
-void FabricVision::applyFilters()
-{
+void FabricVision::applyFilters() {
   toHSV(image_);
-  threshold(image_,filter_);
+  threshold(image_, filter_);
   morphologicalOpening(image_);
   morphologicalClosing(image_);
   toCanny(image_);
 }
 
-void FabricVision::applyFilters(cv::Mat &image)
-{
+void FabricVision::applyFilters(cv::Mat &image) {
   toHSV(image);
-  threshold(image,filter_);
+  threshold(image, filter_);
   morphologicalOpening(image);
   morphologicalClosing(image);
   toCanny(image);
 }
 
-void FabricVision::showFrame(const std::string &window_name) const
-{
+void FabricVision::showFrame(const std::string &window_name) const {
   cv::imshow(window_name, image_);
   cv::waitKey(30);
 }
 
-cv::Mat FabricVision::openFile(const std::string &filename)
-{
+cv::Mat FabricVision::openFile(const std::string &filename) {
   cv::Mat image = cv::imread(filename);
-  if (!image.data)
-    ROS_ERROR("No image data.");
+  if (!image.data) ROS_ERROR("No image data.");
   return (image);
 }
 
 void FabricVision::showImage(const cv::Mat &image,
-                             const std::string &window_name) const
-{
-  cv::namedWindow(window_name.c_str(), cv::WINDOW_AUTOSIZE );
+                             const std::string &window_name) const {
+  cv::namedWindow(window_name.c_str(), cv::WINDOW_AUTOSIZE);
   cv::imshow(window_name.c_str(), image);
   cv::waitKey(0);
 }
 
 void FabricVision::saveFile(const cv::Mat &image,
-                            const std::string &filename) const
-{
+                            const std::string &filename) const {
   cv::imwrite(filename, image);
 }
 
-void FabricVision::toGray(cv::Mat& image) const
-{
-  cv::cvtColor(image, image, cv::COLOR_BGR2GRAY );
+void FabricVision::toGray(cv::Mat &image) const {
+  cv::cvtColor(image, image, cv::COLOR_BGR2GRAY);
 }
 
-void FabricVision::toHSV(cv::Mat& image) const
-{
+void FabricVision::toHSV(cv::Mat &image) const {
   cv::cvtColor(image, image, cv::COLOR_BGR2HSV);
 }
 
-void FabricVision::toBGR(cv::Mat& image) const
-{
+void FabricVision::toBGR(cv::Mat &image) const {
   cv::cvtColor(image, image, cv::COLOR_HSV2BGR);
 }
 
-void FabricVision::toCanny(cv::Mat& image) const
-{
+void FabricVision::toCanny(cv::Mat &image) const {
   cv::Canny(image, image, 0, 50, 5);
 }
 
-std::vector<std::vector<cv::Point> > FabricVision::findContours(cv::Mat& image) const
-{
+std::vector<std::vector<cv::Point> > FabricVision::findContours(cv::Mat &image)
+    const {
   std::vector<std::vector<cv::Point> > contours;
-  cv::findContours(image.clone(), contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+  cv::findContours(image.clone(), contours, cv::RETR_EXTERNAL,
+                   cv::CHAIN_APPROX_SIMPLE);
   return (contours);
 }
 
-cv::RotatedRect FabricVision::findRectangles(const cv::Mat &image,
-                                      const std::vector<std::vector<cv::Point> > &contours) const
-{
+cv::RotatedRect FabricVision::findRectangles(
+    const cv::Mat &image,
+    const std::vector<std::vector<cv::Point> > &contours) const {
   std::vector<cv::Point> approx;
-  for (int i = 0; i < contours.size(); i++)
-  {
-    cv::approxPolyDP(cv::Mat(contours[i]),
-                     approx,
-                     cv::arcLength(cv::Mat(contours[i]), true) * 0.02,
-                     true);
-    if (std::fabs(cv::contourArea(contours[i])) < 100 || !cv::isContourConvex(approx))
+  for (int i = 0; i < contours.size(); i++) {
+    cv::approxPolyDP(cv::Mat(contours[i]), approx,
+                     cv::arcLength(cv::Mat(contours[i]), true) * 0.02, true);
+    if (std::fabs(cv::contourArea(contours[i])) < 100 ||
+        !cv::isContourConvex(approx))
       continue;
 
-    if (approx.size() == 4)
-    {
+    if (approx.size() == 4) {
       std::vector<double> cos;
       for (int j = 2; j < 5; j++)
-        cos.push_back(angle(approx[j%approx.size()], approx[j-2], approx[j-1]));
+        cos.push_back(
+            angle(approx[j % approx.size()], approx[j - 2], approx[j - 1]));
       std::sort(cos.begin(), cos.end());
       double mincos = cos.front();
       double maxcos = cos.back();
-      if (mincos >= -0.1 && maxcos <= 0.3)
-      {
+      if (mincos >= -0.1 && maxcos <= 0.3) {
         cv::RotatedRect r = cv::minAreaRect(contours[i]);
         return r;
       }
@@ -278,40 +277,37 @@ cv::RotatedRect FabricVision::findRectangles(const cv::Mat &image,
   }
 }
 
-cv::Mat FabricVision::setLabels(const cv::Mat& src,
-                             const std::vector<std::vector<cv::Point> > &contours) const
-{
+cv::Mat FabricVision::setLabels(
+    const cv::Mat &src,
+    const std::vector<std::vector<cv::Point> > &contours) const {
   // The array for storing the approximation curve
   std::vector<cv::Point> approx;
 
   // We'll put the labels in this destination image
   cv::Mat dst = src.clone();
 
-  for (int i = 0; i < contours.size(); i++)
-  {
+  for (int i = 0; i < contours.size(); i++) {
     // Approximate contour with accuracy proportional
     // to the contour perimeter
-    cv::approxPolyDP(cv::Mat(contours[i]),
-                     approx,
-                     cv::arcLength(cv::Mat(contours[i]), true) * 0.02,
-                     true);
+    cv::approxPolyDP(cv::Mat(contours[i]), approx,
+                     cv::arcLength(cv::Mat(contours[i]), true) * 0.02, true);
 
     // Skip small or non-convex objects
-    if (std::fabs(cv::contourArea(contours[i])) < 100 || !cv::isContourConvex(approx))
+    if (std::fabs(cv::contourArea(contours[i])) < 100 ||
+        !cv::isContourConvex(approx))
       continue;
 
     if (approx.size() == 3)
-      setLabel(dst, "TRI", contours[i]);    // Triangles
+      setLabel(dst, "TRI", contours[i]);  // Triangles
 
-    else if (approx.size() >= 4 && approx.size() <= 6)
-    {
+    else if (approx.size() >= 4 && approx.size() <= 6) {
       // Number of vertices of polygonal curve
       int vtc = approx.size();
 
       // Get the degree (in cosines) of all corners
       std::vector<double> cos;
-      for (int j = 2; j < vtc+1; j++)
-        cos.push_back(angle(approx[j%vtc], approx[j-2], approx[j-1]));
+      for (int j = 2; j < vtc + 1; j++)
+        cos.push_back(angle(approx[j % vtc], approx[j - 2], approx[j - 1]));
 
       // Sort ascending the corner degree values
       std::sort(cos.begin(), cos.end());
@@ -322,8 +318,7 @@ cv::Mat FabricVision::setLabels(const cv::Mat& src,
 
       // Use the degrees obtained above and the number of vertices
       // to determine the shape of the contour
-      if (vtc == 4 && mincos >= -0.1 && maxcos <= 0.3)
-      {
+      if (vtc == 4 && mincos >= -0.1 && maxcos <= 0.3) {
         // Detect rectangle or square
         cv::Rect r = cv::boundingRect(contours[i]);
         double ratio = std::abs(1 - (double)r.width / r.height);
@@ -336,22 +331,18 @@ cv::Mat FabricVision::setLabels(const cv::Mat& src,
           lbl << rot.center << " " << rot.angle;
           setLabel(dst, lbl.str(), contours[i]);
         }
-      }
-      else if (vtc == 5 && mincos >= -0.34 && maxcos <= -0.27)
+      } else if (vtc == 5 && mincos >= -0.34 && maxcos <= -0.27)
         setLabel(dst, "PENTA", contours[i]);
       else if (vtc == 6 && mincos >= -0.55 && maxcos <= -0.45)
         setLabel(dst, "HEXA", contours[i]);
-    }
-    else
-    {
+    } else {
       // Detect and label circles
       double area = cv::contourArea(contours[i]);
       cv::Rect r = cv::boundingRect(contours[i]);
       int radius = r.width / 2;
 
       if (std::abs(1 - ((double)r.width / r.height)) <= 0.2 &&
-          std::abs(1 - (area / (CV_PI * std::pow(radius, 2)))) <= 0.2)
-      {
+          std::abs(1 - (area / (CV_PI * std::pow(radius, 2)))) <= 0.2) {
         setLabel(dst, "CIR", contours[i]);
       }
     }
@@ -360,73 +351,57 @@ cv::Mat FabricVision::setLabels(const cv::Mat& src,
   return (dst);
 }
 
-void FabricVision::threshold(cv::Mat& image,
-                             const FilterHSV& filter) const
-{
-  cv::inRange(image,
-              cv::Scalar(filter.low_hue, filter.low_saturation, filter.low_value),
-              cv::Scalar(filter.high_hue, filter.high_saturation, filter.high_value),
-              image);
+void FabricVision::threshold(cv::Mat &image, const FilterHSV &filter) const {
+  cv::inRange(
+      image,
+      cv::Scalar(filter.low_hue, filter.low_saturation, filter.low_value),
+      cv::Scalar(filter.high_hue, filter.high_saturation, filter.high_value),
+      image);
 }
 
-void FabricVision::loadCalibration(const std::string &filename)
-{
-  try
-  {
+void FabricVision::loadCalibration(const std::string &filename) {
+  try {
     cv::FileStorage fs(filename, cv::FileStorage::READ);
     fs["camera_matrix"] >> camera_matrix_;
     fs["open"] >> distortion_matrix_;
     fs.release();
   }
-  catch (const cv::Exception &e)
-  {
+  catch (const cv::Exception &e) {
     std::cout << e.what() << std::endl;
   }
 }
 
-void FabricVision::thresholdGUI(const std::string &window_name)
-{
+void FabricVision::thresholdGUI(const std::string &window_name) {
   cv::namedWindow(window_name.c_str(), cv::WINDOW_AUTOSIZE);
   cv::createTrackbar("Low Hue", window_name.c_str(), &filter_.low_hue, 179);
   cv::createTrackbar("High Hue", window_name.c_str(), &filter_.high_hue, 179);
-  cv::createTrackbar("Low Saturation", window_name.c_str(), &filter_.low_saturation, 255);
-  cv::createTrackbar("High Saturation", window_name.c_str(), &filter_.high_saturation, 255);
+  cv::createTrackbar("Low Saturation", window_name.c_str(),
+                     &filter_.low_saturation, 255);
+  cv::createTrackbar("High Saturation", window_name.c_str(),
+                     &filter_.high_saturation, 255);
   cv::createTrackbar("Low Value", window_name.c_str(), &filter_.low_value, 255);
-  cv::createTrackbar("High Value", window_name.c_str(), &filter_.high_value, 255);
+  cv::createTrackbar("High Value", window_name.c_str(), &filter_.high_value,
+                     255);
 }
 
-void FabricVision::morphologicalOpening(cv::Mat& image,
-                                        int radius)
-{
-  cv::erode(image,
-            image,
-            cv::getStructuringElement(cv::MORPH_ELLIPSE,
-                                      cv::Size(radius, radius)) );
+void FabricVision::morphologicalOpening(cv::Mat &image, int radius) {
+  cv::erode(image, image, cv::getStructuringElement(cv::MORPH_ELLIPSE,
+                                                    cv::Size(radius, radius)));
 
-  cv::dilate( image,
-              image,
-              cv::getStructuringElement(cv::MORPH_ELLIPSE,
-                                        cv::Size(radius, radius)) );
+  cv::dilate(image, image, cv::getStructuringElement(cv::MORPH_ELLIPSE,
+                                                     cv::Size(radius, radius)));
 }
 
-void FabricVision::morphologicalClosing(cv::Mat& image,
-                                        int radius)
-{
-  cv::dilate( image,
-              image,
-              cv::getStructuringElement(cv::MORPH_ELLIPSE,
-                                        cv::Size(radius, radius)) );
+void FabricVision::morphologicalClosing(cv::Mat &image, int radius) {
+  cv::dilate(image, image, cv::getStructuringElement(cv::MORPH_ELLIPSE,
+                                                     cv::Size(radius, radius)));
 
-  cv::erode(image,
-            image,
-            cv::getStructuringElement(cv::MORPH_ELLIPSE,
-                                      cv::Size(radius, radius)) );
+  cv::erode(image, image, cv::getStructuringElement(cv::MORPH_ELLIPSE,
+                                                    cv::Size(radius, radius)));
 }
 
-void FabricVision::setLabel(cv::Mat& im,
-                            const std::string label,
-                            const std::vector<cv::Point> &contour) const
-{
+void FabricVision::setLabel(cv::Mat &im, const std::string label,
+                            const std::vector<cv::Point> &contour) const {
   int fontface = cv::FONT_HERSHEY_SIMPLEX;
   double scale = 0.4;
   int thickness = 1;
@@ -435,43 +410,41 @@ void FabricVision::setLabel(cv::Mat& im,
   cv::Size text = cv::getTextSize(label, fontface, scale, thickness, &baseline);
   cv::Rect r = cv::boundingRect(contour);
 
-  cv::Point pt(r.x + ((r.width - text.width) / 2), r.y + ((r.height + text.height) / 2));
-  cv::rectangle(im, pt + cv::Point(0, baseline), pt + cv::Point(text.width, -text.height), CV_RGB(255,255,255), CV_FILLED);
-  cv::putText(im, label, pt, fontface, scale, CV_RGB(0,0,0), thickness, 8);
+  cv::Point pt(r.x + ((r.width - text.width) / 2),
+               r.y + ((r.height + text.height) / 2));
+  cv::rectangle(im, pt + cv::Point(0, baseline),
+                pt + cv::Point(text.width, -text.height), CV_RGB(255, 255, 255),
+                CV_FILLED);
+  cv::putText(im, label, pt, fontface, scale, CV_RGB(0, 0, 0), thickness, 8);
 }
 
-void FabricVision::undistort(cv::Mat &image)
-{
+void FabricVision::undistort(cv::Mat &image) {
   cv::undistort(image, image, camera_matrix_, distortion_matrix_);
 }
 
-double FabricVision::angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) const
-{
+double FabricVision::angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) const {
   double dx1 = pt1.x - pt0.x;
   double dy1 = pt1.y - pt0.y;
   double dx2 = pt2.x - pt0.x;
   double dy2 = pt2.y - pt0.y;
-  return (dx1*dx2 + dy1*dy2)/sqrt((dx1*dx1 + dy1*dy1)*(dx2*dx2 + dy2*dy2) + 1e-10);
+  return (dx1 * dx2 + dy1 * dy2) /
+         sqrt((dx1 * dx1 + dy1 * dy1) * (dx2 * dx2 + dy2 * dy2) + 1e-10);
 }
 
-cv::Point3f FabricVision::camera_translation() const
-{
+cv::Mat FabricVision::image() const { return image_; }
+
+void FabricVision::setImage(const cv::Mat &image) { image_ = image; }
+
+cv::Point3f FabricVision::camera_translation() const {
   return camera_translation_;
 }
 
-void FabricVision::setCamera_translation(const cv::Point3f& camera_translation)
-{
+void FabricVision::setCamera_translation(
+    const cv::Point3f &camera_translation) {
   camera_translation_ = camera_translation;
 }
 
-FilterHSV FabricVision::filter() const
-{
-  return filter_;
-}
+FilterHSV FabricVision::filter() const { return filter_; }
 
-void FabricVision::setFilter(const FilterHSV &filter)
-{
-  filter_ = filter;
-}
-
+void FabricVision::setFilter(const FilterHSV &filter) { filter_ = filter; }
 }

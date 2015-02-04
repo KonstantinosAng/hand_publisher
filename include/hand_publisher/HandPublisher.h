@@ -45,12 +45,12 @@
 
 namespace raad2015 {
 
-class HandPublisher
-{
+class HandPublisher {
 public:
   void init();
   void publishTopic(const std::string &topic_name);
   void runLoop();
+
 private:
   void updateTransform();
   void sendTransform();
@@ -59,7 +59,6 @@ private:
   tf::TransformListener listener_;
   tf::StampedTransform tf_world_to_right_hand_;
 };
-
 }
 
 #endif

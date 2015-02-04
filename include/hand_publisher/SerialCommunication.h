@@ -57,8 +57,7 @@ namespace raad2015 {
  * @brief
  */
 
-class SerialCommunication
-{
+class SerialCommunication {
 public:
   SerialCommunication(const std::string &port = "/dev/ttyUSB0",
                       int baudrate = B38400);
@@ -66,6 +65,7 @@ public:
   void subscribeTopic(const std::string &topic_name);
   void publishTopic(const std::string &topic_name);
   void runLoop();
+
 private:
   void receiveThread();
   void sendMessage(const std_msgs::String &msg);
@@ -77,7 +77,6 @@ private:
   FILE *fp_serial_;
   static const int BUFFER_SIZE = 200;
 };
-
 }
 
 #endif

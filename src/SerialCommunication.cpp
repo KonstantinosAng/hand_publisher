@@ -41,28 +41,27 @@
 namespace raad2015 {
 
 SerialCommunication::SerialCommunication(const std::string &port,
-                                         int baudrate)
-{
+                                         int baudrate) {
   int fd = -1;
   struct termios newtio;
 
-  fd = open(port.c_str(), O_RDWR | O_NOCTTY | O_NDELAY );
+  fd = open(port.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);
   if (fd < 0)
     ROS_ERROR("Could not open serial device %s", port.c_str());
 
   memset(&newtio, 0, sizeof(newtio));
 
-  newtio.c_cflag =  CS8 | CLOCAL | CREAD; //no parity, 1 stop bit
-  newtio.c_iflag = IGNCR;                 //ignore CR, other options off
-  newtio.c_iflag |= IGNBRK;               //ignore break condition
-  newtio.c_oflag = 0;                     //all options off
-  newtio.c_lflag = ICANON;                //process input as lines
+  newtio.c_cflag = CS8 | CLOCAL | CREAD; // no parity, 1 stop bit
+  newtio.c_iflag = IGNCR; // ignore CR, other options off
+  newtio.c_iflag |= IGNBRK; // ignore break condition
+  newtio.c_oflag = 0; // all options off
+  newtio.c_lflag = ICANON; // process input as lines
 
   // Activate the settings
   tcflush(fd, TCIFLUSH);
 
-  if (cfsetispeed(&newtio, baudrate) < 0 || cfsetospeed(&newtio, baudrate) < 0)
-  {
+  if (cfsetispeed(&newtio, baudrate) < 0 ||
+      cfsetospeed(&newtio, baudrate) < 0) {
     ROS_ERROR("Failed to set serial baud rate: %d", baudrate);
     close(fd);
   }
@@ -71,54 +70,43 @@ SerialCommunication::SerialCommunication(const std::string &port,
   tcsetattr(fd, TCSANOW, &newtio);
   tcflush(fd, TCIOFLUSH);
 
-  //Open file as a standard I/O stream
+  // Open file as a standard I/O stream
   fp_serial_ = fdopen(fd, "r+");
   if (!fp_serial_)
     ROS_ERROR("Failed to open serial stream %s", port.c_str());
 }
 
-SerialCommunication::~SerialCommunication()
-{
+SerialCommunication::~SerialCommunication() {
   rcv_.join();
-  if (fp_serial_)
-  {
+  if (fp_serial_) {
     fclose(fp_serial_);
     fp_serial_ = 0;
   }
 }
 
-void SerialCommunication::subscribeTopic(const std::string &topic_name)
-{
-  subscriber_ = node_.subscribe(topic_name,
-                                10,
-                                &SerialCommunication::sendMessage,
-                                this);
+void SerialCommunication::subscribeTopic(const std::string &topic_name) {
+  subscriber_ =
+      node_.subscribe(topic_name, 10, &SerialCommunication::sendMessage, this);
 }
 
-void SerialCommunication::publishTopic(const std::string &topic_name)
-{
-  publisher_ = node_.advertise<std_msgs::String>(topic_name,
-                                                 10);
+void SerialCommunication::publishTopic(const std::string &topic_name) {
+  publisher_ = node_.advertise<std_msgs::String>(topic_name, 10);
 }
 
-void SerialCommunication::sendMessage(const std_msgs::String &msg)
-{
+void SerialCommunication::sendMessage(const std_msgs::String &msg) {
   ROS_DEBUG("%s", msg.data.c_str());
   fprintf(fp_serial_, "%s\r\n", msg.data.c_str());
 }
 
-void SerialCommunication::receiveThread()
-{
+void SerialCommunication::receiveThread() {
   char buffer[BUFFER_SIZE] = "";
   char *buffer_ptr;
   std_msgs::String msg;
 
   ROS_INFO("Receive thread started");
-  while (ros::ok())
-  {
+  while (ros::ok()) {
     buffer_ptr = fgets(buffer, BUFFER_SIZE, fp_serial_);
-    if (buffer_ptr != 0)
-    {
+    if (buffer_ptr != 0) {
       ROS_DEBUG("Received %s", buffer);
       msg.data = buffer;
       publisher_.publish(msg);
@@ -126,11 +114,9 @@ void SerialCommunication::receiveThread()
   }
 }
 
-void SerialCommunication::runLoop()
-{
+void SerialCommunication::runLoop() {
   // Create receive thread
   rcv_ = boost::thread(boost::bind(&SerialCommunication::receiveThread, this));
   ros::spin();
 }
-
 }

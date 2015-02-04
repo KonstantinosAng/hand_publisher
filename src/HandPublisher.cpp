@@ -40,31 +40,23 @@
 
 namespace raad2015 {
 
-void HandPublisher::init()
-{
-  try
-  {
-    listener_.waitForTransform("/world",
-                               "/right_hand",
-                               ros::Time(0),
+void HandPublisher::init() {
+  try {
+    listener_.waitForTransform("/world", "/right_hand", ros::Time(0),
                                ros::Duration(10));
   }
-  catch (const tf::TransformException &e)
-  {
+  catch (const tf::TransformException &e) {
     ROS_ERROR("%s", e.what());
   }
 }
 
-void HandPublisher::publishTopic(const std::string &topic_name)
-{
-  publisher_ = node_.advertise<std_msgs::String>(topic_name,10);
+void HandPublisher::publishTopic(const std::string &topic_name) {
+  publisher_ = node_.advertise<std_msgs::String>(topic_name, 10);
 }
 
-void HandPublisher::runLoop()
-{
+void HandPublisher::runLoop() {
   ros::Rate rate(10.0);
-  while (ros::ok())
-  {
+  while (ros::ok()) {
     this->updateTransform();
     this->sendTransform();
     ros::spinOnce();
@@ -72,23 +64,17 @@ void HandPublisher::runLoop()
   }
 }
 
-void HandPublisher::updateTransform()
-{
-  try
-  {
-    listener_.lookupTransform("/world",
-                              "/right_hand",
-                              ros::Time(0),
+void HandPublisher::updateTransform() {
+  try {
+    listener_.lookupTransform("/world", "/right_hand", ros::Time(0),
                               tf_world_to_right_hand_);
   }
-  catch (const tf::TransformException &e)
-  {
+  catch (const tf::TransformException &e) {
     ROS_ERROR("%s", e.what());
   }
 }
 
-void HandPublisher::sendTransform()
-{
+void HandPublisher::sendTransform() {
   char tf_string[200];
   std_msgs::String msg;
   double x = tf_world_to_right_hand_.getOrigin().x();
@@ -98,5 +84,4 @@ void HandPublisher::sendTransform()
   msg.data = tf_string;
   publisher_.publish(msg);
 }
-
 }

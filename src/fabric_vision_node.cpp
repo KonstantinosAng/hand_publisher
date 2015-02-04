@@ -40,8 +40,7 @@
 #include <hand_publisher/config.h>
 #include <hand_publisher/FabricVision.h>
 
-int main(int argc, char** argv)
-{
+int main(int argc, char **argv) {
   ros::init(argc, argv, "fabric_vision_node");
   ros::NodeHandle n;
   std::string package_path(PACKAGE_PATH);
@@ -49,18 +48,15 @@ int main(int argc, char** argv)
   calibration_path.append("/config/camera_calibration.yml");
 
   raad2015::FabricVision vision;
-  cv::Point3f trans(0.0, 0.0, 1.0);
-  vision.setCamera_translation(trans);
   vision.publishTopic("fabric_vertices");
   vision.subscribeTopic("fabric_localization_request");
   vision.loadCalibration(calibration_path);
   vision.openCamera(1);
   vision.calibrate();
-//  vision.thresholdGUI();
+  //  vision.thresholdGUI();
   ros::Rate rate(30);
 
-  while(ros::ok())
-  {
+  while (ros::ok()) {
     vision.getFrame();
     vision.applyFilters();
     vision.showFrame();

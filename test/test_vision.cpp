@@ -37,20 +37,19 @@
 *********************************************************************/
 
 #include <gtest/gtest.h>
+#include <boost/lexical_cast.hpp>
 #include <hand_publisher/FabricVision.h>
 #include <hand_publisher/config.h>
 
 using namespace raad2015;
 using namespace std;
 
-TEST(Hand_Publisher, Fabric_Vision)
-{
+TEST(Hand_Publisher, Fabric_Vision) {
   FabricVision vision;
   std::string package_path(PACKAGE_PATH);
   std::vector<std::vector<cv::Point> > contours;
 
-  for (int i = 1; i < 4; ++i )
-  {
+  for (int i = 1; i < 4; ++i) {
     std::string open_path(package_path);
     open_path.append("/samples/img");
     open_path.append(boost::lexical_cast<std::string>(i));
@@ -63,8 +62,26 @@ TEST(Hand_Publisher, Fabric_Vision)
     save_path.append("/samples/edited");
     save_path.append(boost::lexical_cast<std::string>(i));
     save_path.append(".jpg");
-    vision.saveFile(image,save_path);
+    vision.saveFile(image, save_path);
   }
+}
+
+TEST(Hand_Publisher, Localization) {
+  FabricVision vision;
+  std::string package_path(PACKAGE_PATH);
+  std::string calibration_path(package_path);
+  calibration_path.append("/config/camera_calibration.yml");
+  std::string open_path(package_path);
+  open_path.append("/samples/testing.jpg");
+  vision.loadCalibration(calibration_path);
+  vision.setImage(vision.openFile(open_path));
+  vision.calibrate(1);
+  // Reload the images
+  vision.setImage(vision.openFile(open_path));
+  vision.applyFilters();
+  std_msgs::Bool flag;
+  flag.data = true;
+  vision.calculateVertices(flag);
 }
 
 int main(int argc, char **argv) {

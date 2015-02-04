@@ -38,8 +38,7 @@
 
 #include <hand_publisher/SerialCommunication.h>
 
-int main(int argc, char** argv)
-{
+int main(int argc, char **argv) {
   ros::init(argc, argv, "serial_communication_node");
   raad2015::SerialCommunication comms;
   comms.publishTopic("serial_incoming_messages");
