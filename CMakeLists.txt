@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(hand_publisher)
 
-find_package(catkin REQUIRED COMPONENTS roscpp tf std_msgs)
-find_package(Boost REQUIRED COMPONENTS thread)
+find_package(catkin REQUIRED
+            COMPONENTS roscpp tf std_msgs geometry_msgs)
+find_package(Boost REQUIRED
+            COMPONENTS thread)
 find_package(OpenCV REQUIRED)
 
 catkin_package(
@@ -27,17 +29,16 @@ add_executable(serial_communication_node ${HEADERS} src/serial_communication_nod
 target_link_libraries(serial_communication_node     ${catkin_LIBRARIES}
                                                     ${Boost_LIBRARIES})
 
-add_executable(tf_to_string_node ${HEADERS}         src/tf_to_string_node.cpp
+add_executable(skeleton_to_hand_node ${HEADERS}     src/skeleton_to_hand.cpp
                                                     src/HandPublisher.cpp)
-target_link_libraries(tf_to_string_node             ${catkin_LIBRARIES})
+target_link_libraries(skeleton_to_hand_node         ${catkin_LIBRARIES})
 
 add_executable(fabric_vision_node ${HEADERS}        src/fabric_vision_node.cpp
                                                     src/FabricVision.cpp)
 target_link_libraries(fabric_vision_node            ${catkin_LIBRARIES}
                                                     ${OpenCV_LIBRARIES})
 
-add_executable(coordinate_system                    src/coordinate_system.cpp)
-target_link_libraries(coordinate_system             ${OpenCV_LIBRARIES})
+add_library(coordination ${HEADERS}                 src/Coordination.cpp)
 
 #############
 ## Install ##
@@ -52,6 +53,7 @@ file(GLOB_RECURSE TESTS ${PROJECT_SOURCE_DIR}/test/*.cpp)
 
 foreach(ITEM ${TESTS})
     get_filename_component(filename ${ITEM} NAME_WE)
-    catkin_add_gtest(${filename} ${ITEM} src/FabricVision.cpp)
+    catkin_add_gtest(${filename} ${ITEM} src/FabricVision.cpp
+                                         src/HandPublisher.cpp)
     target_link_libraries(${filename} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 endforeach()

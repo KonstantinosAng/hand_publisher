@@ -151,6 +151,8 @@ void FabricVision::embedOrigin(cv::Mat &drawing)
            cv::Point2d(origin_y.at<double>(0,0),
                        origin_y.at<double>(0,1)),
            Color::ColorRed, 3, 8);
+
+  tf::StampedTransform image_frame;
 }
 
 void FabricVision::calculateVertices() {

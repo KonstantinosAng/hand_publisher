@@ -1,5 +1,5 @@
 /*********************************************************************
-* HandPublisher.h
+* test_hand.cpp
 *
 * Software License Agreement (BSD License)
 *
@@ -36,45 +36,29 @@
 * Authors: Aris Synodinos
 *********************************************************************/
 
-#ifndef HAND_PUBLISHER_H
-#define HAND_PUBLISHER_H
+#include <gtest/gtest.h>
+#include <hand_publisher/HandPublisher.h>
+#include <hand_publisher/config.h>
 
-#include <ros/ros.h>
-#include <tf/transform_listener.h>
-#include <geometry_msgs/Point.h>
-#include <std_msgs/Float64MultiArray.h>
+using namespace raad2015;
+using namespace std;
 
-using geometry_msgs::Point;
-using tf::Vector3;
-
-namespace raad2015 {
-
-class HandPublisher {
-public:
-  void init();
-  void publishTopic(const std::string &topic_name);
-  void runLoop();
-  void addAverage(Point &hand);
-  Point hand() const;
-  void setHand(const Point& hand);
-  void calcOrientation();
-
-private:
-  void updateTransform();
-
-  void sendTransform();
-
-  ros::NodeHandle node_;
-  ros::Publisher publisher_;
-  tf::TransformListener listener_;
-  tf::StampedTransform tf_tracker_to_right_hand_;
-  tf::StampedTransform tf_tracker_to_right_shoulder_;
-  tf::StampedTransform tf_tracker_to_left_shoulder_;
-  tf::StampedTransform tf_tracker_to_torso_;
-
-  Point hand_;
-  std::deque<Point> hand_points_;
-};
+TEST(Hand_Publisher, Localization) {
+  HandPublisher hand;
+  for (size_t i = 0; i < 21; ++i) {
+    Point pp;
+    pp.x = i;
+    pp.y = 0;
+    pp.z = 1;
+    hand.addAverage(pp);
+  }
+  EXPECT_FLOAT_EQ(15.5, hand.hand().x);
+  EXPECT_FLOAT_EQ(0.0, hand.hand().y);
+  EXPECT_FLOAT_EQ(1.0, hand.hand().z);
 }
 
-#endif
+int main(int argc, char **argv) {
+  testing::InitGoogleTest(&argc, argv);
+  ros::init(argc, argv, "google_test");
+  return RUN_ALL_TESTS();
+}

@@ -44,6 +44,7 @@
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float64MultiArray.h>
 #include <opencv2/opencv.hpp>
+#include <tf/transform_broadcaster.h>
 
 namespace raad2015 {
 

@@ -42,8 +42,10 @@ namespace raad2015 {
 
 void HandPublisher::init() {
   try {
-    listener_.waitForTransform("/world", "/right_hand", ros::Time(0),
-                               ros::Duration(10));
+    listener_.waitForTransform("/tracker_depth_frame",
+                               "/user_0/right_hand",
+                               ros::Time(0),
+                               ros::Duration(10));    
   }
   catch (const tf::TransformException &e) {
     ROS_ERROR("%s", e.what());
@@ -51,7 +53,7 @@ void HandPublisher::init() {
 }
 
 void HandPublisher::publishTopic(const std::string &topic_name) {
-  publisher_ = node_.advertise<std_msgs::String>(topic_name, 10);
+  publisher_ = node_.advertise<std_msgs::Float64MultiArray>(topic_name, 10);
 }
 
 void HandPublisher::runLoop() {
@@ -66,8 +68,22 @@ void HandPublisher::runLoop() {
 
 void HandPublisher::updateTransform() {
   try {
-    listener_.lookupTransform("/world", "/right_hand", ros::Time(0),
-                              tf_world_to_right_hand_);
+    listener_.lookupTransform("/tracker_depth_frame",
+                              "/user_0/right_hand",
+                              ros::Time(0),
+                              tf_tracker_to_right_hand_);
+    listener_.lookupTransform("/tracker_depth_frame",
+                              "/user_0/right_shoulder",
+                              ros::Time(0),
+                              tf_tracker_to_right_shoulder_);
+    listener_.lookupTransform("/tracker_depth_frame",
+                              "/user_0/left_shoulder",
+                              ros::Time(0),
+                              tf_tracker_to_left_shoulder_);
+    listener_.lookupTransform("/tracker_depth_frame",
+                              "/user_0/torso",
+                              ros::Time(0),
+                              tf_tracker_to_torso_);
   }
   catch (const tf::TransformException &e) {
     ROS_ERROR("%s", e.what());
@@ -75,13 +91,65 @@ void HandPublisher::updateTransform() {
 }
 
 void HandPublisher::sendTransform() {
-  char tf_string[200];
-  std_msgs::String msg;
-  double x = tf_world_to_right_hand_.getOrigin().x();
-  double y = tf_world_to_right_hand_.getOrigin().y();
-  double z = tf_world_to_right_hand_.getOrigin().z();
-  sprintf(tf_string, "%f %f %f", x, y, z);
-  msg.data = tf_string;
-  publisher_.publish(msg);
+
 }
+
+Point HandPublisher::hand() const
+{
+  return hand_;
+}
+
+void HandPublisher::setHand(const Point& hand)
+{
+  hand_ = hand;
+}
+
+void HandPublisher::addAverage(Point &hand)
+{
+  hand_points_.push_front(hand);
+  if (hand_points_.size() >= 11)
+    hand_points_.pop_back();
+
+  double x = 0, y = 0, z = 0;
+  for (size_t i = 0; i < hand_points_.size(); ++i)
+  {
+    x += hand_points_.at(i).x;
+    y += hand_points_.at(i).y;
+    z += hand_points_.at(i).z;
+  }
+  hand_.x = x / hand_points_.size();
+  hand_.y = y / hand_points_.size();
+  hand_.z = z / hand_points_.size();
+}
+
+void HandPublisher::calcOrientation()
+{
+//  tf_tracker_to_right_shoulder_.getOrigin().getX() - tf_tracker_to_torso_.getOrigin().getX();
+  Vector3 torso_to_rshoulder(
+        tf_tracker_to_right_shoulder_.getOrigin().getX()-tf_tracker_to_torso_.getOrigin().getX(),
+        tf_tracker_to_right_shoulder_.getOrigin().getY()-tf_tracker_to_torso_.getOrigin().getY(),
+        tf_tracker_to_right_shoulder_.getOrigin().getZ()-tf_tracker_to_torso_.getOrigin().getZ());
+
+  Vector3 torso_to_lshoulder(
+        tf_tracker_to_left_shoulder_.getOrigin().getX()-tf_tracker_to_torso_.getOrigin().getX(),
+        tf_tracker_to_left_shoulder_.getOrigin().getY()-tf_tracker_to_torso_.getOrigin().getY(),
+        tf_tracker_to_left_shoulder_.getOrigin().getZ()-tf_tracker_to_torso_.getOrigin().getZ());
+  Vector3 normal = tf::tfCross(torso_to_rshoulder,torso_to_lshoulder);
+  Vector3 k(0.0, 0.0, 1.0);
+  Vector3 xy_projected = normal - tf::tfDot(normal,k)*k;
+}
+
+//void HandPublisher::sendTransform() {
+//  char tf_string[200];
+//  std_msgs::String msg;
+//  double x = tf_world_to_right_hand_.getOrigin().x();
+//  double y = tf_world_to_right_hand_.getOrigin().y();
+//  double z = tf_world_to_right_hand_.getOrigin().z();
+//  sprintf(tf_string, "%f %f %f", x, y, z);
+//  msg.data = tf_string;
+//  publisher_.publish(msg);
+//}
+
+
+
 }

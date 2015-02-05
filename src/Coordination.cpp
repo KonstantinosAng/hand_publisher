@@ -1,5 +1,5 @@
 /*********************************************************************
-* HandPublisher.h
+* Coordination.cpp
 *
 * Software License Agreement (BSD License)
 *
@@ -36,45 +36,52 @@
 * Authors: Aris Synodinos
 *********************************************************************/
 
-#ifndef HAND_PUBLISHER_H
-#define HAND_PUBLISHER_H
+#include <hand_publisher/Coordination.h>
 
-#include <ros/ros.h>
-#include <tf/transform_listener.h>
-#include <geometry_msgs/Point.h>
-#include <std_msgs/Float64MultiArray.h>
+namespace raad2015{
 
-using geometry_msgs::Point;
-using tf::Vector3;
+Coordination::Coordination()
+{
+  current_state = IDLE;
+  // Subscribe to Vision
+  vision_sub_ = node_.subscribe("/fabric_vertices",
+                                10,
+                                &Coordination::fabric,
+                                this);
 
-namespace raad2015 {
+  // Subscribe to hand_sub_
+  hand_sub_ = node_.subscribe("/human_points",
+                              10,
+                              &Coordination::human,
+                              this);
 
-class HandPublisher {
-public:
-  void init();
-  void publishTopic(const std::string &topic_name);
-  void runLoop();
-  void addAverage(Point &hand);
-  Point hand() const;
-  void setHand(const Point& hand);
-  void calcOrientation();
+  // Subscribe to serial comms
+  serial_rsp_ = node_.subscribe("/serial_incoming_messages",
+                                10,
+                                &Coordination::serial,
+                                this);
 
-private:
-  void updateTransform();
-
-  void sendTransform();
-
-  ros::NodeHandle node_;
-  ros::Publisher publisher_;
-  tf::TransformListener listener_;
-  tf::StampedTransform tf_tracker_to_right_hand_;
-  tf::StampedTransform tf_tracker_to_right_shoulder_;
-  tf::StampedTransform tf_tracker_to_left_shoulder_;
-  tf::StampedTransform tf_tracker_to_torso_;
-
-  Point hand_;
-  std::deque<Point> hand_points_;
-};
+  // Advertise Publishers
+  vision_req_ = node_.advertise<std_msgs::Bool>("/fabric_localization_request",
+                                                10);
+  serial_cmd_ = node_.advertise<std_msgs::String>("/serial_outgoing_messages",
+                                                  10);
 }
 
-#endif
+void Coordination::fabric(const std_msgs::Float64MultiArray &msg)
+{
+
+}
+
+void Coordination::human(const std_msgs::Float64MultiArray &msg)
+{
+
+}
+
+void Coordination::serial(const std_msgs::String &msg)
+{
+
+}
+
+
+}

@@ -1,5 +1,5 @@
 /*********************************************************************
-* HandPublisher.h
+* Coordination.h
 *
 * Software License Agreement (BSD License)
 *
@@ -36,45 +36,42 @@
 * Authors: Aris Synodinos
 *********************************************************************/
 
-#ifndef HAND_PUBLISHER_H
-#define HAND_PUBLISHER_H
+#ifndef COORDINATION_H
+#define COORDINATION_H
 
 #include <ros/ros.h>
-#include <tf/transform_listener.h>
-#include <geometry_msgs/Point.h>
+#include <std_msgs/Bool.h>
+#include <std_msgs/String.h>
 #include <std_msgs/Float64MultiArray.h>
 
-using geometry_msgs::Point;
-using tf::Vector3;
+namespace raad2015{
 
-namespace raad2015 {
+typedef enum {
+  IDLE,
+  HUMAN,
+  COOP
+}State_t;
 
-class HandPublisher {
+class Coordination
+{
 public:
-  void init();
-  void publishTopic(const std::string &topic_name);
-  void runLoop();
-  void addAverage(Point &hand);
-  Point hand() const;
-  void setHand(const Point& hand);
-  void calcOrientation();
-
+  Coordination();
 private:
-  void updateTransform();
+  void fabric(const std_msgs::Float64MultiArray &msg);
+  void human(const std_msgs::Float64MultiArray &msg);
+  void serial(const std_msgs::String &msg);
 
-  void sendTransform();
-
+  State_t current_state;
   ros::NodeHandle node_;
-  ros::Publisher publisher_;
-  tf::TransformListener listener_;
-  tf::StampedTransform tf_tracker_to_right_hand_;
-  tf::StampedTransform tf_tracker_to_right_shoulder_;
-  tf::StampedTransform tf_tracker_to_left_shoulder_;
-  tf::StampedTransform tf_tracker_to_torso_;
-
-  Point hand_;
-  std::deque<Point> hand_points_;
+  // ROS Subscribers
+  ros::Subscriber vision_sub_;
+  ros::Subscriber hand_sub_;
+  ros::Subscriber serial_rsp_;
+  // ROS Publishers
+  ros::Publisher vision_req_;
+  ros::Publisher serial_cmd_;
 };
+
 }
 
-#endif
+#endif // COORDINATION_H
