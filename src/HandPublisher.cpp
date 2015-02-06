@@ -53,7 +53,8 @@ void HandPublisher::init() {
 }
 
 void HandPublisher::publishTopic(const std::string &topic_name) {
-  publisher_ = node_.advertise<std_msgs::Float64MultiArray>(topic_name, 10);
+  publisher_ = node_.advertise<PointStamped>(topic_name, 10);
+  vector_pub_ = node_.advertise<Vector3Stamped>("/normal_human", 10);
 }
 
 void HandPublisher::runLoop() {
@@ -91,7 +92,11 @@ void HandPublisher::updateTransform() {
 }
 
 void HandPublisher::sendTransform() {
-
+  PointStamped msg;
+  msg.header.stamp = ros::Time::now();
+  msg.point.x = hand_.x;
+  msg.point.y = hand_.y;
+  msg.point.z = hand_.z;
 }
 
 Point HandPublisher::hand() const
@@ -137,6 +142,11 @@ void HandPublisher::calcOrientation()
   Vector3 normal = tf::tfCross(torso_to_rshoulder,torso_to_lshoulder);
   Vector3 k(0.0, 0.0, 1.0);
   Vector3 xy_projected = normal - tf::tfDot(normal,k)*k;
+  Vector3Stamped message;
+  message.header.frame_id = "/tracker_depth_frame";
+  message.header.stamp = ros::Time::now();
+  tf::vector3TFToMsg(xy_projected.normalize(),message.vector);
+  vector_pub_.publish(message);
 }
 
 //void HandPublisher::sendTransform() {

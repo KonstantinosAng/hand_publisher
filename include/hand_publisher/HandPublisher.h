@@ -42,10 +42,15 @@
 #include <ros/ros.h>
 #include <tf/transform_listener.h>
 #include <geometry_msgs/Point.h>
+#include <geometry_msgs/PointStamped.h>
+#include <geometry_msgs/Vector3Stamped.h>
 #include <std_msgs/Float64MultiArray.h>
 
 using geometry_msgs::Point;
+using geometry_msgs::PointStamped;
+using geometry_msgs::Vector3Stamped;
 using tf::Vector3;
+using std_msgs::Float64MultiArray;
 
 namespace raad2015 {
 
@@ -66,6 +71,7 @@ private:
 
   ros::NodeHandle node_;
   ros::Publisher publisher_;
+  ros::Publisher vector_pub_;
   tf::TransformListener listener_;
   tf::StampedTransform tf_tracker_to_right_hand_;
   tf::StampedTransform tf_tracker_to_right_shoulder_;

@@ -40,9 +40,18 @@
 #define COORDINATION_H
 
 #include <ros/ros.h>
+#include <deque>
+#include <cmath>
 #include <std_msgs/Bool.h>
 #include <std_msgs/String.h>
 #include <std_msgs/Float64MultiArray.h>
+#include <geometry_msgs/Point.h>
+#include <geometry_msgs/PointStamped.h>
+
+using geometry_msgs::Point;
+using geometry_msgs::PointStamped;
+using std_msgs::Float64MultiArray;
+using std_msgs::String;
 
 namespace raad2015{
 
@@ -56,10 +65,13 @@ class Coordination
 {
 public:
   Coordination();
+  void runLoop();
 private:
-  void fabric(const std_msgs::Float64MultiArray &msg);
-  void human(const std_msgs::Float64MultiArray &msg);
-  void serial(const std_msgs::String &msg);
+  void fabric(const Float64MultiArray &msg);
+  void human(const PointStamped &msg);
+  void serial(const String &msg);
+  bool nearby(double distance);
+  double l2distance(const Point &p1, const Point &p2);
 
   State_t current_state;
   ros::NodeHandle node_;
@@ -70,6 +82,8 @@ private:
   // ROS Publishers
   ros::Publisher vision_req_;
   ros::Publisher serial_cmd_;
+
+  std::deque<PointStamped> hand_positions_;
 };
 
 }

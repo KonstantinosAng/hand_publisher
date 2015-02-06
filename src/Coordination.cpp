@@ -68,20 +68,75 @@ Coordination::Coordination()
                                                   10);
 }
 
-void Coordination::fabric(const std_msgs::Float64MultiArray &msg)
+void Coordination::runLoop()
+{
+  ros::Rate rate(30);
+  while (ros::ok())
+  {
+    switch (current_state)
+    {
+    case IDLE:
+
+
+
+      break;
+    case HUMAN:
+
+
+      break;
+    case COOP:
+
+
+      break;
+    }
+    ros::spinOnce();
+    rate.sleep();
+  }
+}
+
+void Coordination::fabric(const Float64MultiArray &msg)
 {
 
 }
 
-void Coordination::human(const std_msgs::Float64MultiArray &msg)
+void Coordination::human(const PointStamped &msg)
+{
+  // Only keep the positions of the last 1 second
+  hand_positions_.push_front(msg);
+  std::deque<PointStamped>::iterator iter;
+  for (iter = hand_positions_.begin(); iter != hand_positions_.end(); ++iter)
+  {
+    if (ros::Time::now() - iter->header.stamp < ros::Duration(1.0))
+      hand_positions_.erase(iter);
+  }
+}
+
+void Coordination::serial(const String &msg)
 {
 
 }
 
-void Coordination::serial(const std_msgs::String &msg)
+bool Coordination::nearby(double distance)
 {
+  // check if hand is near any of the fabric vertices
+  // Copy the deque for thread safety!!!
+  std::deque<PointStamped> positions = hand_positions_;
+  std::deque<PointStamped>::iterator iter;
+  for (iter = positions.front(); iter != positions.back(); ++iter)
+  {
+    double dist_p1 = 0;
+  }
 
 }
 
+double Coordination::l2distance(const Point &p1,
+                                const Point &p2)
+{
+  double dx = p1.x - p2.x;
+  double dy = p1.y - p2.y;
+  double dz = p1.z - p2.z;
+  double distance = std::sqrt( std::pow(dx,2) + std::pow(dy,2) + std::pow(dz,2));
+  return distance;
+}
 
 }
