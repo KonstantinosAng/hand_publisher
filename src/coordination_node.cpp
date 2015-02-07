@@ -1,5 +1,5 @@
 /*********************************************************************
-* tf_to_string_node.cpp
+* coordination_node.cpp
 *
 * Software License Agreement (BSD License)
 *
@@ -36,13 +36,12 @@
 * Authors: Aris Synodinos
 *********************************************************************/
 
-#include <hand_publisher/HandPublisher.h>
+#include <hand_publisher/Coordination.h>
 
 int main(int argc, char **argv) {
-  ros::init(argc, argv, "skeleton_to_hand_node");
-  raad2015::HandPublisher hand;
-  hand.publishTopic("/human_points");
-  hand.init();
-  hand.runLoop();
+  ros::init(argc, argv, "coordination_node");
+  raad2015::Coordination coord;
+  coord.runLoop();
   return 0;
 }
+

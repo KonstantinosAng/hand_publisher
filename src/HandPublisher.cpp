@@ -43,9 +43,9 @@ namespace raad2015 {
 void HandPublisher::init() {
   try {
     listener_.waitForTransform("/tracker_depth_frame",
-                               "/user_0/right_hand",
+                               "/right_hand",
                                ros::Time(0),
-                               ros::Duration(10));    
+                               ros::Duration(10));
   }
   catch (const tf::TransformException &e) {
     ROS_ERROR("%s", e.what());
@@ -54,11 +54,12 @@ void HandPublisher::init() {
 
 void HandPublisher::publishTopic(const std::string &topic_name) {
   publisher_ = node_.advertise<PointStamped>(topic_name, 10);
-  vector_pub_ = node_.advertise<Vector3Stamped>("/normal_human", 10);
+//  vector_pub_ = node_.advertise<Vector3Stamped>("/normal_human", 10);
+  human_orientation_pub_ = node_.advertise<PointStamped>("/human_normal",10);
 }
 
 void HandPublisher::runLoop() {
-  ros::Rate rate(10.0);
+  ros::Rate rate(30.0);
   while (ros::ok()) {
     this->updateTransform();
     this->sendTransform();
@@ -70,33 +71,43 @@ void HandPublisher::runLoop() {
 void HandPublisher::updateTransform() {
   try {
     listener_.lookupTransform("/tracker_depth_frame",
-                              "/user_0/right_hand",
+                              "/right_hand",
                               ros::Time(0),
                               tf_tracker_to_right_hand_);
     listener_.lookupTransform("/tracker_depth_frame",
-                              "/user_0/right_shoulder",
+                              "/right_shoulder",
                               ros::Time(0),
                               tf_tracker_to_right_shoulder_);
     listener_.lookupTransform("/tracker_depth_frame",
-                              "/user_0/left_shoulder",
+                              "/left_shoulder",
                               ros::Time(0),
                               tf_tracker_to_left_shoulder_);
     listener_.lookupTransform("/tracker_depth_frame",
-                              "/user_0/torso",
+                              "/torso",
                               ros::Time(0),
                               tf_tracker_to_torso_);
   }
   catch (const tf::TransformException &e) {
-    ROS_ERROR("%s", e.what());
+    //ROS_ERROR("%s", e.what());
   }
+
+  Point hand;
+  hand.x = tf_tracker_to_right_hand_.getOrigin().getX();
+  hand.y = tf_tracker_to_right_hand_.getOrigin().getY();
+  hand.z = tf_tracker_to_right_hand_.getOrigin().getZ();
+
+  this->addAverage(hand);
 }
 
 void HandPublisher::sendTransform() {
   PointStamped msg;
+  msg.header.frame_id = "/tracker_depth_frame";
   msg.header.stamp = ros::Time::now();
   msg.point.x = hand_.x;
   msg.point.y = hand_.y;
   msg.point.z = hand_.z;
+  publisher_.publish(msg);
+  this->calcOrientation();
 }
 
 Point HandPublisher::hand() const
@@ -110,7 +121,7 @@ void HandPublisher::setHand(const Point& hand)
 }
 
 void HandPublisher::addAverage(Point &hand)
-{
+{;
   hand_points_.push_front(hand);
   if (hand_points_.size() >= 11)
     hand_points_.pop_back();
@@ -139,27 +150,33 @@ void HandPublisher::calcOrientation()
         tf_tracker_to_left_shoulder_.getOrigin().getX()-tf_tracker_to_torso_.getOrigin().getX(),
         tf_tracker_to_left_shoulder_.getOrigin().getY()-tf_tracker_to_torso_.getOrigin().getY(),
         tf_tracker_to_left_shoulder_.getOrigin().getZ()-tf_tracker_to_torso_.getOrigin().getZ());
-  Vector3 normal = tf::tfCross(torso_to_rshoulder,torso_to_lshoulder);
-  Vector3 k(0.0, 0.0, 1.0);
-  Vector3 xy_projected = normal - tf::tfDot(normal,k)*k;
-  Vector3Stamped message;
-  message.header.frame_id = "/tracker_depth_frame";
-  message.header.stamp = ros::Time::now();
-  tf::vector3TFToMsg(xy_projected.normalize(),message.vector);
-  vector_pub_.publish(message);
+
+  Vector3 normal = tf::tfCross(torso_to_lshoulder, torso_to_rshoulder);
+  normal.normalize();
+//  Vector3 k(0.0, 1.0, 0.0);
+//  Vector3 xy_projected = normal - tf::tfDot(normal,k)*k;
+//  Vector3Stamped message;
+//  message.header.frame_id = "/tracker_depth_frame";
+//  message.header.stamp = ros::Time::now();
+//  tf::vector3TFToMsg(xy_projected.normalize(),message.vector);
+//  vector_pub_.publish(message);
+
+  PointStamped test;
+  test.header.frame_id = "/torso";
+  test.header.stamp = ros::Time::now();
+  test.point.x = normal.getX();
+  test.point.y = normal.getY();
+  test.point.z = normal.getZ();
+  human_orientation_pub_.publish(test);
+
+//  PoseStamped rviz_pose;
+//  rviz_pose.header.frame_id = "/torso";
+//  rviz_pose.header.stamp = ros::Time::now();
+//  rviz_pose.pose.position.x = 0.0;
+//  rviz_pose.pose.position.y = 0.0;
+//  rviz_pose.pose.position.z = 0.0;
+//  rviz_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(normal.angle(Vector3(1,0,0)), normal.angle(Vector3(0,1,0)), normal.angle(Vector3(0,0,1)));
+//  rviz_pub_.publish(rviz_pose);
 }
-
-//void HandPublisher::sendTransform() {
-//  char tf_string[200];
-//  std_msgs::String msg;
-//  double x = tf_world_to_right_hand_.getOrigin().x();
-//  double y = tf_world_to_right_hand_.getOrigin().y();
-//  double z = tf_world_to_right_hand_.getOrigin().z();
-//  sprintf(tf_string, "%f %f %f", x, y, z);
-//  msg.data = tf_string;
-//  publisher_.publish(msg);
-//}
-
-
 
 }

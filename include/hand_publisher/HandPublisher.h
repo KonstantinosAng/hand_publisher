@@ -44,11 +44,16 @@
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/Vector3Stamped.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <std_msgs/Float64MultiArray.h>
+#include <eigen3/Eigen/Geometry>
 
 using geometry_msgs::Point;
 using geometry_msgs::PointStamped;
 using geometry_msgs::Vector3Stamped;
+using geometry_msgs::Pose;
+using geometry_msgs::PoseStamped;
+
 using tf::Vector3;
 using std_msgs::Float64MultiArray;
 
@@ -72,6 +77,7 @@ private:
   ros::NodeHandle node_;
   ros::Publisher publisher_;
   ros::Publisher vector_pub_;
+  ros::Publisher human_orientation_pub_;
   tf::TransformListener listener_;
   tf::StampedTransform tf_tracker_to_right_hand_;
   tf::StampedTransform tf_tracker_to_right_shoulder_;

@@ -42,6 +42,8 @@
 #include <ros/ros.h>
 #include <deque>
 #include <cmath>
+#include <tf/tf.h>
+#include <tf/transform_listener.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/String.h>
 #include <std_msgs/Float64MultiArray.h>
@@ -50,6 +52,8 @@
 
 using geometry_msgs::Point;
 using geometry_msgs::PointStamped;
+using tf::Vector3;
+using std_msgs::Bool;
 using std_msgs::Float64MultiArray;
 using std_msgs::String;
 
@@ -66,24 +70,49 @@ class Coordination
 public:
   Coordination();
   void runLoop();
-private:
-  void fabric(const Float64MultiArray &msg);
-  void human(const PointStamped &msg);
-  void serial(const String &msg);
-  bool nearby(double distance);
+  int findMinValue(const std::vector<double> &data, double &value);
+  int findMaxValue(const std::vector<double> &data, double &value);
   double l2distance(const Point &p1, const Point &p2);
+private:
+  void sendRobotGoal();
+  void sendRobotCurrent();
+  void fabric(const Float64MultiArray &msg);
+  void humanHand(const PointStamped &msg);
+  void humanOrientation(const PointStamped &msg);
+  void serial(const String &msg);
+  bool isNearFabric(double distance);
+  PointStamped calculateGrippingPoint();
+  bool isHandMoving(const double &radius);
+  void requestFabricData();
+  void publishFabricVertices();
 
-  State_t current_state;
+  State_t current_state_;
   ros::NodeHandle node_;
   // ROS Subscribers
   ros::Subscriber vision_sub_;
   ros::Subscriber hand_sub_;
+  ros::Subscriber human_orientation_sub_;
   ros::Subscriber serial_rsp_;
   // ROS Publishers
   ros::Publisher vision_req_;
   ros::Publisher serial_cmd_;
+  ros::Publisher fabric_point0_pub_;
+  ros::Publisher fabric_point1_pub_;
+  ros::Publisher fabric_point2_pub_;
+  ros::Publisher fabric_point3_pub_;
+  ros::Publisher human_gripped_point_pub_;
+  ros::Publisher robot_gripped_point_pub_;
 
+  bool gripped_;
+  bool robot_ready_;
+  bool vision_sent_;
+  int human_gripped_point_index_;
+  int robot_gripped_point_index_;
   std::deque<PointStamped> hand_positions_;
+  std::vector<PointStamped> fabric_vertices_;
+  PointStamped human_orientation_;
+  PointStamped robot_cmd_;
+  tf::TransformListener listener_;
 };
 
 }

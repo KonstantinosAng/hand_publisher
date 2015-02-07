@@ -11,3 +11,7 @@ serial_rcv() {
 fabric_send() {
 	rostopic pub -1 "/fabric_localization_request" std_msgs/Bool -- True
 }
+
+robot_send() {
+	rostopic pub -1 "/serial_incoming_messages" std_msgs/String -- "REACHED"
+}

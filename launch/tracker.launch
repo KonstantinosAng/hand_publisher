@@ -5,6 +5,6 @@
 	<!-- Load Visualization -->
 	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find hand_publisher)/config/display.rviz" />
 	<!-- Load Tf To String Node -->
-	<node name="tf_to_string" pkg="hand_publisher" type="tf_to_string_node" />
+	<node name="skeleton_to_hand_node" pkg="hand_publisher" type="skeleton_to_hand_node" />
 </launch>
 

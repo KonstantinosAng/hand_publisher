@@ -38,7 +38,9 @@ add_executable(fabric_vision_node ${HEADERS}        src/fabric_vision_node.cpp
 target_link_libraries(fabric_vision_node            ${catkin_LIBRARIES}
                                                     ${OpenCV_LIBRARIES})
 
-add_library(coordination ${HEADERS}                 src/Coordination.cpp)
+add_executable(coordination_node ${HEADERS}         src/coordination_node.cpp
+                                                    src/Coordination.cpp)
+target_link_libraries(coordination_node             ${catkin_LIBRARIES})
 
 #############
 ## Install ##
@@ -54,6 +56,8 @@ file(GLOB_RECURSE TESTS ${PROJECT_SOURCE_DIR}/test/*.cpp)
 foreach(ITEM ${TESTS})
     get_filename_component(filename ${ITEM} NAME_WE)
     catkin_add_gtest(${filename} ${ITEM} src/FabricVision.cpp
-                                         src/HandPublisher.cpp)
+                                         src/HandPublisher.cpp
+                                         src/SerialCommunication.cpp
+                                         src/Coordination.cpp)
     target_link_libraries(${filename} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 endforeach()

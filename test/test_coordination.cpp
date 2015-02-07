@@ -1,5 +1,5 @@
 /*********************************************************************
-* tf_to_string_node.cpp
+* test_hand.cpp
 *
 * Software License Agreement (BSD License)
 *
@@ -36,13 +36,54 @@
 * Authors: Aris Synodinos
 *********************************************************************/
 
-#include <hand_publisher/HandPublisher.h>
+#include <gtest/gtest.h>
+#include <hand_publisher/Coordination.h>
+#include <hand_publisher/config.h>
+
+using namespace raad2015;
+using namespace std;
+
+TEST(Coordination, findMinValue) {
+  Coordination coord;
+  std::vector<double> test;
+  test.push_back(23);
+  test.push_back(12);
+  test.push_back(54);
+  test.push_back(3);
+  test.push_back(8);
+  double value;
+  EXPECT_EQ(3, coord.findMinValue(test,value));
+  EXPECT_FLOAT_EQ(3.0, value);
+}
+
+TEST(Coordination, findMaxValue) {
+  Coordination coord;
+  std::vector<double> test;
+  test.push_back(-23);
+  test.push_back(-12);
+  test.push_back(-54);
+  test.push_back(-3);
+  test.push_back(-8);
+  double value;
+  EXPECT_EQ(3, coord.findMaxValue(test,value));
+  EXPECT_FLOAT_EQ(-3, value);
+}
+
+TEST(Coordination, l2distance) {
+  Coordination coord;
+  Point p1;
+  p1.x = 1;
+  p1.y = 1;
+  p1.z = 0;
+  Point p2;
+  p2.x = 1;
+  p2.y = 3;
+  p2.z = 2;
+  EXPECT_FLOAT_EQ(std::sqrt(8), coord.l2distance(p1,p2));
+}
 
 int main(int argc, char **argv) {
-  ros::init(argc, argv, "skeleton_to_hand_node");
-  raad2015::HandPublisher hand;
-  hand.publishTopic("/human_points");
-  hand.init();
-  hand.runLoop();
-  return 0;
+  testing::InitGoogleTest(&argc, argv);
+  ros::init(argc, argv, "google_test_coord");
+  return RUN_ALL_TESTS();
 }

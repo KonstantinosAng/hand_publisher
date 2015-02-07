@@ -59,6 +59,6 @@ TEST(Hand_Publisher, Localization) {
 
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);
-  ros::init(argc, argv, "google_test");
+  ros::init(argc, argv, "google_test_hand");
   return RUN_ALL_TESTS();
 }
