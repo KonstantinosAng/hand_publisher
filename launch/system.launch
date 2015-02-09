@@ -12,12 +12,12 @@
 	<!-- Load Camera -->
 	<node name="fabric_vision" pkg="hand_publisher" type="fabric_vision_node" />
 	<!-- Load communication node -->
-	<!-- <node name="serial_comms_node" pkg="hand_publisher" type="serial_communication_node" /> -->
+	<node name="serial_comms_node" pkg="hand_publisher" type="serial_communication_node" />
 
 	<node name="coordination" pkg="hand_publisher" type="coordination_node" />
 	<!-- TF Static Transforms to World -->
-	<node pkg="tf" type="static_transform_publisher" name="world_to_robot" args=" 0 0 1.14 0 0 0 /world /robot_frame 100" />
-	<node pkg="tf" type="static_transform_publisher" name="world_to_tracker" args=" 0.65 1.925 1.61 0 0 1.6707  /world /tracker_depth_frame 100"/> 
-	<node pkg="tf" type="static_transform_publisher" name="world_to_camera_checkerboard" args=" 1.12 -0.33 0.83 1.5707 0 0 /world /camera_checkerboard 100" />
+	<node pkg="tf" type="static_transform_publisher" name="world_to_robot" args="0 0 0.532 0 0 0 /world /robot_frame 100" />
+	<node pkg="tf" type="static_transform_publisher" name="world_to_tracker" args="0.5 1.925 1.60 0 0 1.6707  /world /tracker_depth_frame 100"/> 
+	<node pkg="tf" type="static_transform_publisher" name="world_to_camera_checkerboard" args=" 1.013 -0.35 0.83 1.5707 0 0 /world /camera_checkerboard 100" />
 </launch>
 

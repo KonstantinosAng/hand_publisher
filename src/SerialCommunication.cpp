@@ -86,11 +86,11 @@ SerialCommunication::~SerialCommunication() {
 
 void SerialCommunication::subscribeTopic(const std::string &topic_name) {
   subscriber_ =
-      node_.subscribe(topic_name, 10, &SerialCommunication::sendMessage, this);
+      node_.subscribe(topic_name, 5, &SerialCommunication::sendMessage, this);
 }
 
 void SerialCommunication::publishTopic(const std::string &topic_name) {
-  publisher_ = node_.advertise<std_msgs::String>(topic_name, 10);
+  publisher_ = node_.advertise<std_msgs::String>(topic_name, 5);
 }
 
 void SerialCommunication::sendMessage(const std_msgs::String &msg) {

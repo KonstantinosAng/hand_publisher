@@ -85,6 +85,8 @@ private:
   bool isHandMoving(const double &radius);
   void requestFabricData();
   void publishFabricVertices();
+  void getCurrentHand();
+  void sendTextToRobot(const std::string &text);
 
   State_t current_state_;
   ros::NodeHandle node_;
@@ -105,6 +107,7 @@ private:
 
   bool gripped_;
   bool robot_ready_;
+  bool robot_moved_;
   bool vision_sent_;
   int human_gripped_point_index_;
   int robot_gripped_point_index_;
@@ -112,6 +115,7 @@ private:
   std::vector<PointStamped> fabric_vertices_;
   PointStamped human_orientation_;
   PointStamped robot_cmd_;
+  PointStamped hand_grabbed_;
   tf::TransformListener listener_;
 };
 

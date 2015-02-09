@@ -1,7 +1,7 @@
 #!/usr/bin/bash
 
 serial_send() {
-	rostopic pub -1 "/serial_outgoing_messages" std_msgs/String -- $1
+	rostopic pub -1 "/serial_outgoing_messages" std_msgs/String -- "'$1'"
 }
 
 serial_rcv() {

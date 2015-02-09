@@ -123,7 +123,7 @@ void HandPublisher::setHand(const Point& hand)
 void HandPublisher::addAverage(Point &hand)
 {;
   hand_points_.push_front(hand);
-  if (hand_points_.size() >= 11)
+  if (hand_points_.size() >= 51)
     hand_points_.pop_back();
 
   double x = 0, y = 0, z = 0;

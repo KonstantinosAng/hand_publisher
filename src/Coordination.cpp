@@ -47,47 +47,48 @@ Coordination::Coordination()
   current_state_ = IDLE;
   // Subscribe to Vision
   vision_sub_ = node_.subscribe("/fabric_vertices",
-                                10,
+                                1,
                                 &Coordination::fabric,
                                 this);
 
   // Subscribe to hand_sub_
   hand_sub_ = node_.subscribe("/human_points",
-                              10,
+                              1,
                               &Coordination::humanHand,
                               this);
 
   // Subscribe to serial comms
   serial_rsp_ = node_.subscribe("/serial_incoming_messages",
-                                10,
+                                5,
                                 &Coordination::serial,
                                 this);
 
   // Subscribe to human_orientation_
   human_orientation_sub_ = node_.subscribe("/human_normal",
-                                       10,
+                                       1,
                                        &Coordination::humanOrientation,
                                        this);
   // Advertise Publishers
   vision_req_ = node_.advertise<Bool>("/fabric_localization_request",
-                                                10);
+                                                1);
   serial_cmd_ = node_.advertise<String>("/serial_outgoing_messages",
-                                                  10);
+                                                  1);
   fabric_point0_pub_ = node_.advertise<PointStamped>("/fabric_point0",
-                                                    10);
+                                                    1);
   fabric_point1_pub_ = node_.advertise<PointStamped>("/fabric_point1",
-                                                    10);
+                                                    1);
   fabric_point2_pub_ = node_.advertise<PointStamped>("/fabric_point2",
-                                                    10);
+                                                    1);
   fabric_point3_pub_ = node_.advertise<PointStamped>("/fabric_point3",
-                                                    10);
+                                                    1);
   human_gripped_point_pub_ = node_.advertise<PointStamped>("/human_gripped_point",
-                                                    10);
+                                                    1);
   robot_gripped_point_pub_ = node_.advertise<PointStamped>("/robot_gripped_point",
-                                                    10);
+                                                    1);
   robot_ready_ = false;
   vision_sent_ = false;
   gripped_ = false;
+  robot_moved_ = false;
 //  ros::Duration(5).sleep();
   // Request from fabric vision node
   while(!vision_sent_ && ros::ok())
@@ -97,18 +98,20 @@ Coordination::Coordination()
     ros::spinOnce();
     ros::Duration(1).sleep();
   }
+  ROS_ERROR("Waiting for Human to Grab the Cloth");
 }
 
 void Coordination::runLoop()
 {
-  ros::Rate rate(10);
+  ros::Rate rate(30);
   while (ros::ok())
   {
     switch (current_state_)
     {
     case IDLE:
-      if (!isHandMoving(0.05) && isNearFabric(0.1))
+      if (!isHandMoving(0.05) && isNearFabric(0.15))
       {
+        this->sendTextToRobot("hgrasp");
         this->sendRobotGoal();
         ROS_ERROR("Human Grabbed Cloth, Waiting for Robot!");
         current_state_ = HUMAN;
@@ -117,9 +120,10 @@ void Coordination::runLoop()
     case HUMAN:
       if (robot_ready_) {
         ROS_ERROR("Robot Grabbed Cloth, Starting Cooperation!");
+        this->getCurrentHand();
         current_state_ = COOP;
       }
-      robot_ready_ = true; // FOR TESTING ONLY!!
+//      robot_ready_ = true; // FOR TESTING ONLY!!
       break;
     case COOP:
       if (gripped_)
@@ -176,10 +180,19 @@ void Coordination::humanOrientation(const PointStamped &msg)
 
 void Coordination::serial(const String &msg)
 {
-  if (msg.data == "REACHED")
+//  ROS_ERROR("String received is %s", msg.data.c_str());
+  if (msg.data.compare("epeiasa\n") == 0)
+  {
     robot_ready_ = true;
-  if (msg.data == "RELEASED")
+  }
+  if (msg.data.compare("RELEASED\n") == 0)
+  {
     gripped_ = false;
+  }
+  if (msg.data.compare("steile\n") == 0)
+  {
+    robot_moved_ = true;
+  }
 }
 
 bool Coordination::isNearFabric(double distance)
@@ -294,48 +307,68 @@ void Coordination::sendRobotGoal()
   // Transform point to the robot frame
   listener_.transformPoint("/robot_frame", grip_point_camera, grip_point_robot);
 
+  if (grip_point_robot.point.z < 0.302)
+    grip_point_robot.point.z = 0.302;
   std_msgs::String msg;
   char char_msg[200];
-  sprintf(char_msg, "%f %f %f", grip_point_robot.point.x, grip_point_robot.point.y, grip_point_robot.point.z );
+  sprintf(char_msg, "%f %f %f", 1000*grip_point_robot.point.x, 1000*grip_point_robot.point.y, 1000*grip_point_robot.point.z );
   msg.data = char_msg;
   serial_cmd_.publish(msg);
 }
 
+void Coordination::getCurrentHand()
+{
+  // Hand from kinect
+  PointStamped hand_grabbed_kinect = hand_positions_.front();
+  listener_.transformPoint("/camera_checkerboard", hand_grabbed_kinect, hand_grabbed_);
+}
+
 void Coordination::sendRobotCurrent()
 {
-  ros::Time timecall = ros::Time::now();
-  ros::Duration(0.01).sleep();
-  // Hand from kinect
-  PointStamped current_hand = hand_positions_.front();
-  // Human Gripped point from Camera
-  PointStamped human_gripped_point = fabric_vertices_[human_gripped_point_index_];
-  human_gripped_point.header.stamp = timecall;
-  // Hand from Camera
-  PointStamped hand_to_camera;
-  listener_.transformPoint("/camera_checkerboard", current_hand, hand_to_camera);
+  if (robot_moved_)
+  {
+    ros::Time timecall = ros::Time::now();
+    ros::Duration(0.01).sleep();
+    // Hand from kinect
+    PointStamped current_hand = hand_positions_.front();
+    // Human Gripped point from Camera
+  //  PointStamped human_gripped_point = fabric_vertices_[human_gripped_point_index_];
+  //  hand_grabbed_.header.stamp = timecall;
+    // Hand from Camera
+    PointStamped hand_to_camera;
+    listener_.transformPoint("/camera_checkerboard", current_hand, hand_to_camera);
 
-  double dx = hand_to_camera.point.x - human_gripped_point.point.x;
-  double dy = hand_to_camera.point.y - human_gripped_point.point.y;
-  double dz = hand_to_camera.point.z - human_gripped_point.point.z;
+    double dx = hand_to_camera.point.x - hand_grabbed_.point.x;
+    double dy = hand_to_camera.point.y - hand_grabbed_.point.y;
+    double dz = hand_to_camera.point.z - hand_grabbed_.point.z;
 
-  // Robot Gripped point from Camera
-  PointStamped robot_gripped_point_cam = fabric_vertices_[robot_gripped_point_index_];
-  robot_gripped_point_cam.header.stamp = timecall;
-  // Robot Gripped point from robot
-  PointStamped robot_gripped_point;
-  listener_.transformPoint("/robot_frame", robot_gripped_point_cam, robot_gripped_point);
+    // Robot Gripped point from Camera
+    PointStamped robot_gripped_point_cam = fabric_vertices_[robot_gripped_point_index_];
+    robot_gripped_point_cam.header.stamp = timecall;
+    // Robot Gripped point from robot
+    PointStamped robot_gripped_point;
+    listener_.transformPoint("/robot_frame", robot_gripped_point_cam, robot_gripped_point);
 
-  robot_cmd_.header.frame_id = "/robot_frame";
-  robot_cmd_.header.stamp = timecall;
-  robot_cmd_.point.x = robot_gripped_point.point.x - dy;
-  robot_cmd_.point.y = robot_gripped_point.point.y + dx;
-  robot_cmd_.point.z = robot_gripped_point.point.z + dz;
+    robot_cmd_.header.frame_id = "/robot_frame";
+    robot_cmd_.header.stamp = timecall;
+    robot_cmd_.point.x = robot_gripped_point.point.x - dy;
+    robot_cmd_.point.y = robot_gripped_point.point.y + dx;
+    robot_cmd_.point.z = robot_gripped_point.point.z + dz;
 
-  std_msgs::String msg;
-  char char_msg[200];
-  sprintf(char_msg, "%f %f %f", robot_cmd_.point.x, robot_cmd_.point.y, robot_cmd_.point.z );
-  msg.data = char_msg;
-  serial_cmd_.publish(msg);
+    if (robot_cmd_.point.z < 0.31)
+      robot_cmd_.point.z = 0.31;
+    if (robot_cmd_.point.z > 0.39)
+      robot_cmd_.point.z = 0.39;
+    if (robot_cmd_.point.x > 0.67)
+      robot_cmd_.point.x = 0.67;
+
+    std_msgs::String msg;
+    char char_msg[200];
+    sprintf(char_msg, "%f %f %f", 1000*robot_cmd_.point.x, 1000*robot_cmd_.point.y, 1000*robot_cmd_.point.z );
+    msg.data = char_msg;
+    serial_cmd_.publish(msg);
+    robot_moved_ = false;
+  }
 }
 
 void Coordination::requestFabricData()
@@ -387,6 +420,13 @@ void Coordination::publishFabricVertices()
     if (current_state_ == COOP)
       robot_gripped_point_pub_.publish(robot_cmd_);
   }
+}
+
+void Coordination::sendTextToRobot(const std::string &text)
+{
+  std_msgs::String msg;
+  msg.data = text.c_str();
+  serial_cmd_.publish(msg);
 }
 
 }
