@@ -58,11 +58,18 @@ void HandPublisher::publishTopic(const std::string &topic_name) {
   human_orientation_pub_ = node_.advertise<PointStamped>("/human_normal",10);
 }
 
+void HandPublisher::subscribeTopic(const std::string &topic_name) {
+    kinect2_body_sub_ = node_.subscribe(topic_name, 100, &HandPublisher::receivedBody, this);
+}
+
 void HandPublisher::runLoop() {
   ros::Rate rate(30.0);
   while (ros::ok()) {
-    this->updateTransform();
-    this->sendTransform();
+//    this->updateTransform();
+//    this->sendTransform();
+//    this->receivedBody();
+    this->updateHuman();
+    this->publishResults();
     ros::spinOnce();
     rate.sleep();
   }
@@ -177,6 +184,54 @@ void HandPublisher::calcOrientation()
 //  rviz_pose.pose.position.z = 0.0;
 //  rviz_pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(normal.angle(Vector3(1,0,0)), normal.angle(Vector3(0,1,0)), normal.angle(Vector3(0,0,1)));
 //  rviz_pub_.publish(rviz_pose);
+}
+
+void HandPublisher::receivedBody(const k2_client::BodyArray &msg) {   
+  //Receives all the bodies, assume the first tracked is of interest
+  try {
+    for (size_t i = 0; i < msg.bodies.size(); ++i) {
+      if (msg.bodies.at(i).isTracked) {
+        k2_client::Body tracked_human = msg.bodies.at(i);
+        spine_mid_.header.frame_id = "/tracker_depth_frame";
+        spine_mid_.header.stamp = tracked_human.header.stamp;
+        spine_mid_.pose.orientation = tracked_human.jointOrientations.at(1).orientation;
+        spine_mid_.pose.position = tracked_human.jointPositions.at(1).position;
+        right_hand_.header.frame_id = "/tracker_depth_frame";
+        right_hand_.header.stamp = tracked_human.header.stamp;
+        right_hand_.pose.position = tracked_human.jointPositions.at(11).position;
+        right_hand_.pose.orientation = tracked_human.jointOrientations.at(11).orientation;
+        ROS_DEBUG("Hand is at (%f,%f,%f)", right_hand_.pose.position.x,right_hand_.pose.position.y,right_hand_.pose.position.z);
+      }
+    }
+  }
+  catch (...) {
+    ROS_ERROR("Unknown exception occured!");
+  }
+}
+
+void HandPublisher::updateHuman() {
+  //Could apply filter
+  filtered_mid_ = spine_mid_;
+  filtered_hand_ = right_hand_;
+}
+
+void HandPublisher::publishResults() {
+  PointStamped hand;
+  hand.header.frame_id = filtered_hand_.header.frame_id;
+  hand.header.stamp = filtered_hand_.header.stamp;
+  hand.point.x = filtered_hand_.pose.position.x;
+  hand.point.y = filtered_hand_.pose.position.y;
+  hand.point.z = filtered_hand_.pose.position.z;
+  publisher_.publish(hand);
+
+  PointStamped normal;
+  normal.header.frame_id = "SpineMid";
+  normal.header.stamp = ros::Time::now();
+  normal.point.x = 0.0;
+  normal.point.y = 0.0;
+  normal.point.z = 0.5;
+  human_orientation_pub_.publish(normal);
+
 }
 
 }

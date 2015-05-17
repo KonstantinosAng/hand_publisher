@@ -42,6 +42,7 @@ int main(int argc, char **argv) {
   ros::init(argc, argv, "skeleton_to_hand_node");
   raad2015::HandPublisher hand;
   hand.publishTopic("/human_points");
+  hand.subscribeTopic("/kinect2/bodyArray");
   hand.init();
   hand.runLoop();
   return 0;

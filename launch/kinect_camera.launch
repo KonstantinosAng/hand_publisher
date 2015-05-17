@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+	<param name="serverNameOrIP" value="10.42.0.70" />
+	<!-- <param name="serverNameOrIP" value="169.254.190.206" /> -->
+    <group ns="/kinect2">
+    	<node name="startRGB" pkg="k2_client" type="startRGB"/>
+    </group>
+</launch>
+

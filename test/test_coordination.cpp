@@ -43,44 +43,44 @@
 using namespace raad2015;
 using namespace std;
 
-TEST(Coordination, findMinValue) {
-  Coordination coord;
-  std::vector<double> test;
-  test.push_back(23);
-  test.push_back(12);
-  test.push_back(54);
-  test.push_back(3);
-  test.push_back(8);
-  double value;
-  EXPECT_EQ(3, coord.findMinValue(test,value));
-  EXPECT_FLOAT_EQ(3.0, value);
-}
+//TEST(Coordination, findMinValue) {
+//  Coordination coord;
+//  std::vector<double> test;
+//  test.push_back(23);
+//  test.push_back(12);
+//  test.push_back(54);
+//  test.push_back(3);
+//  test.push_back(8);
+//  double value;
+//  EXPECT_EQ(3, coord.findMinValue(test,value));
+//  EXPECT_FLOAT_EQ(3.0, value);
+//}
 
-TEST(Coordination, findMaxValue) {
-  Coordination coord;
-  std::vector<double> test;
-  test.push_back(-23);
-  test.push_back(-12);
-  test.push_back(-54);
-  test.push_back(-3);
-  test.push_back(-8);
-  double value;
-  EXPECT_EQ(3, coord.findMaxValue(test,value));
-  EXPECT_FLOAT_EQ(-3, value);
-}
+//TEST(Coordination, findMaxValue) {
+//  Coordination coord;
+//  std::vector<double> test;
+//  test.push_back(-23);
+//  test.push_back(-12);
+//  test.push_back(-54);
+//  test.push_back(-3);
+//  test.push_back(-8);
+//  double value;
+//  EXPECT_EQ(3, coord.findMaxValue(test,value));
+//  EXPECT_FLOAT_EQ(-3, value);
+//}
 
-TEST(Coordination, l2distance) {
-  Coordination coord;
-  Point p1;
-  p1.x = 1;
-  p1.y = 1;
-  p1.z = 0;
-  Point p2;
-  p2.x = 1;
-  p2.y = 3;
-  p2.z = 2;
-  EXPECT_FLOAT_EQ(std::sqrt(8), coord.l2distance(p1,p2));
-}
+//TEST(Coordination, l2distance) {
+//  Coordination coord;
+//  Point p1;
+//  p1.x = 1;
+//  p1.y = 1;
+//  p1.z = 0;
+//  Point p2;
+//  p2.x = 1;
+//  p2.y = 3;
+//  p2.z = 2;
+//  EXPECT_FLOAT_EQ(std::sqrt(8), coord.l2distance(p1,p2));
+//}
 
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);

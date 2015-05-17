@@ -1,4 +1,5 @@
 %YAML:1.0
+# NEEDS RECALIBRATION!
 image_width: 640
 image_height: 480
 camera_name: narrow_stereo
@@ -12,7 +13,7 @@ open: !!opencv-matrix
    rows: 1
    cols: 5
    dt: d
-   data: [0.263029, -0.857592, 0.0014, -0.001215, 0]
+   data: [0.0, 0.0, 0.0, 0.0, 0.0]
 rectification_matrix: !!opencv-matrix
    rows: 3
    cols: 3

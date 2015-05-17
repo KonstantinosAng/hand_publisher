@@ -58,6 +58,12 @@ public:
   static cv::Scalar ColorBlack;
 };
 
+typedef enum {
+  up    = 0,
+  down  = 1,
+  right = 2,
+  left  = 3
+}Location;
 
 typedef struct {
   int low_hue;
@@ -73,37 +79,29 @@ public:
   FabricVision();
   void subscribeTopic(const std::string &topic_name);
   void publishTopic(const std::string &topic_name);
-  void calibrate();
-  void calibrate(int i);
-  void calculateVertices();
+  cv::Mat calibrateExtrinsic(const cv::Mat &image);
+  cv::Mat embedOrigin(const cv::Mat &image);
+  cv::Mat embedPoints(const cv::Mat &image,
+                      const std::vector<cv::Point2f> &pixels,
+                      const std::vector<cv::Point3f> &points) const;
+  void calculateVertices(const cv::Mat &image, cv::Mat &draw);
+  std::vector<cv::Point2f> calculateVertices(const cv::Mat &image);
+  std::vector<cv::Point3f> projectTo3D(const std::vector<cv::Point2f> &image_points);
   cv::VideoCapture openCamera(int device = 0);
   void showCamera(cv::VideoCapture &camera,
                   const std::string &window_name = "Camera Image") const;
-  void getFrame();
-  void applyFilters();
-  void applyFilters(cv::Mat &image);
-  void showFrame(const std::string &window_name = "Filtered Image") const;
+  cv::Mat getFrame(cv::VideoCapture &camera);
+  cv::Mat applyFilters(const cv::Mat &image);
   void showFrame(const cv::Mat &image,
                  const std::string &window_name = "Image") const;
   cv::Mat openFile(const std::string &filename);
-  void showImage(const cv::Mat &image,
-                 const std::string &window_name = "Display Image") const;
   void saveFile(const cv::Mat &image, const std::string &filename) const;
   void loadCalibration(const std::string &filename);
   std::vector<std::vector<cv::Point> > findContours(cv::Mat &image) const;
   cv::Mat setLabels(const cv::Mat &src,
                     const std::vector<std::vector<cv::Point> > &contours) const;
-  FilterHSV filter() const;
-  void setFilter(const FilterHSV &filter);
   void thresholdGUI(const std::string &window_name = "HSV Control");
-
-  cv::Mat image() const;
-  void setImage(const cv::Mat& image);
-
-  void embedOrigin(cv::Mat &drawing);
-  cv::Mat real_image() const;
-  void setReal_image(const cv::Mat& real_image);
-
+  cv::Mat undistort(const cv::Mat &image);
 private:
   void morphologicalOpening(cv::Mat &image, int radius = 5);
   void morphologicalClosing(cv::Mat &image, int radius = 5);
@@ -112,27 +110,32 @@ private:
   void toBGR(cv::Mat &image) const;
   void toCanny(cv::Mat &image) const;
   void threshold(cv::Mat &image, const FilterHSV &filter) const;
-  cv::RotatedRect
-  findRectangles(const cv::Mat &image,
-                 const std::vector<std::vector<cv::Point> > &contours) const;
+  cv::RotatedRect findRectangles(const cv::Mat &image,
+                                 const std::vector<std::vector<cv::Point> > &contours) const;
+  void setLabel(cv::Mat &image, const std::string label,
+                const Location &loc,
+                const cv::Point &point) const;
   void setLabel(cv::Mat &im, const std::string label,
                 const std::vector<cv::Point> &contour) const;
-  void undistort(cv::Mat &image);
   double angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) const;
-  void calculateVertices(const std_msgs::Bool &msg);
+  void fabricRequest(const std_msgs::Bool &msg);
+  void publishResults(const std::vector<cv::Point3f> &vertices);
+  cv::Point2f transformPoint(cv::Point2f current, cv::Mat transformation);
 
   FilterHSV filter_;
-  cv::VideoCapture video_;
-  cv::Mat real_image_;
-  cv::Mat image_;
   cv::Mat camera_matrix_;
   cv::Mat distortion_matrix_;
+  cv::Mat image_to_checkerboard_;
   cv::Mat rmat_;
   cv::Mat tvec_;
+  cv::Mat rvec_;
   double scale_;
+
   ros::NodeHandle node_;
   ros::Publisher publisher_;
   ros::Subscriber subscriber_;
+  bool intrinsic_calibrated_;
+  bool extrinsic_calibrated_;
 };
 }
 

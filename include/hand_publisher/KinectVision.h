@@ -1,5 +1,5 @@
 /*********************************************************************
-* test_hand.cpp
+* KinectVision.h
 *
 * Software License Agreement (BSD License)
 *
@@ -36,29 +36,53 @@
 * Authors: Aris Synodinos
 *********************************************************************/
 
-#include <gtest/gtest.h>
-#include <hand_publisher/HandPublisher.h>
-#include <hand_publisher/config.h>
+#ifndef KINECT_VISION_H
+#define KINECT_VISION_H
 
-using namespace raad2015;
-using namespace std;
+#include <ros/ros.h>
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/image_encodings.h>
+#include <opencv2/opencv.hpp>
+#include <cv_bridge/cv_bridge.h>
+#include <tf/transform_broadcaster.h>
 
-//TEST(Hand_Publisher, Localization) {
-//  HandPublisher hand;
-//  for (size_t i = 0; i < 21; ++i) {
-//    Point pp;
-//    pp.x = i;
-//    pp.y = 0;
-//    pp.z = 1;
-//    hand.addAverage(pp);
-//  }
-//  EXPECT_FLOAT_EQ(15.5, hand.hand().x);
-//  EXPECT_FLOAT_EQ(0.0, hand.hand().y);
-//  EXPECT_FLOAT_EQ(1.0, hand.hand().z);
-//}
+namespace raad2015 {
 
-int main(int argc, char **argv) {
-  testing::InitGoogleTest(&argc, argv);
-  ros::init(argc, argv, "google_test_hand");
-  return RUN_ALL_TESTS();
+class Color
+{
+public:
+  static cv::Scalar ColorBlue;
+  static cv::Scalar ColorRed;
+  static cv::Scalar ColorGreen;
+  static cv::Scalar ColorWhite;
+  static cv::Scalar ColorBlack;
+};
+
+class KinectVision
+{
+public:
+  KinectVision();
+  cv::Mat openFile(const std::string &filename);
+  void showImage(const cv::Mat &image,
+                 const std::string &window_name = "Display Inage") const;
+  void loadIntrinsic(const std::string &filename);
+  void calibrateExtrinsic(const cv::Mat &image);
+  void embedOrigin(cv::Mat &image);
+  void saveFile(const cv::Mat &image,
+                const std::string &filename) const;
+private:
+  void imageCallBack(const sensor_msgs::ImageConstPtr& msg);
+  ros::NodeHandle node_;
+  ros::Subscriber sub_;
+  tf::TransformBroadcaster br_;
+  cv::Mat camera_matrix_;
+  cv::Mat distortion_matrix_;
+  cv::Mat rmat_;
+  cv::Mat tvec_;
+  cv::Mat rvec_;
+  double scale_;
+};
+
 }
+
+#endif // KINECT_VISION_H

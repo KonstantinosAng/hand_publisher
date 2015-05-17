@@ -44,18 +44,45 @@
 using namespace raad2015;
 using namespace std;
 
+TEST(Hand_Publisher, Fabric_Calibration) {
+  FabricVision vision;
+  std::string package_path(PACKAGE_PATH);
+  std::string calibration_path(package_path);
+  calibration_path.append("/config/camera_calibration.yml");
+  std::string open_path(package_path);
+  open_path.append("/samples/testing.jpg");
+  vision.loadCalibration(calibration_path);
+  cv::Mat img = vision.openFile(open_path);
+  cv::Mat checkerboard = vision.calibrateExtrinsic(img);
+  cv::Mat origin = vision.undistort(img);
+  origin = vision.embedOrigin(origin);
+
+  std::string save_path(package_path);
+  save_path.append("/samples/");
+  std::string save_checker(save_path);
+  save_checker.append("checker_fabric.jpg");
+  std::string save_origin(save_path);
+  save_origin.append("origin_fabric.jpg");
+  vision.saveFile(checkerboard, save_checker);
+  vision.saveFile(origin, save_origin);
+}
+
 TEST(Hand_Publisher, Fabric_Vision) {
   FabricVision vision;
   std::string package_path(PACKAGE_PATH);
-  std::vector<std::vector<cv::Point> > contours;
+  std::string calibration_path(package_path);
+  calibration_path.append("/config/camera_calibration.yml");
+  vision.loadCalibration(calibration_path);
 
+  std::vector<std::vector<cv::Point> > contours;
   for (int i = 1; i < 4; ++i) {
     std::string open_path(package_path);
     open_path.append("/samples/img");
     open_path.append(boost::lexical_cast<std::string>(i));
     open_path.append(".jpg");
     cv::Mat image = vision.openFile(open_path);
-    vision.applyFilters(image);
+    image = vision.undistort(image);
+    image = vision.applyFilters(image);
     contours = vision.findContours(image);
     image = vision.setLabels(image, contours);
     std::string save_path(package_path);
@@ -74,13 +101,21 @@ TEST(Hand_Publisher, Localization) {
   std::string open_path(package_path);
   open_path.append("/samples/testing.jpg");
   vision.loadCalibration(calibration_path);
-  vision.setReal_image(vision.openFile(open_path));
-  vision.setImage(vision.openFile(open_path));
-  vision.calibrate(1);
-  // Reload the images
-  vision.setImage(vision.openFile(open_path));
-  vision.applyFilters();
-  vision.calculateVertices();
+  cv::Mat img = vision.openFile(open_path);
+  img = vision.calibrateExtrinsic(img);
+  cv::Mat und = vision.undistort(img);
+  img = vision.embedOrigin(img);
+  cv::Mat filtered = vision.applyFilters(img);
+  vision.calculateVertices(filtered, img);
+  std::string save_path(package_path);
+  save_path.append("/samples/identified.jpg");
+
+  std::vector<cv::Point2f> vert = vision.calculateVertices(filtered);
+  std::cout << "Vertices on the image are:" << vert << std::endl;
+  std::vector<cv::Point3f> wrld = vision.projectTo3D(vert);
+  std::cout << "Vertices on the world are:" << wrld << std::endl;
+  img = vision.embedPoints(img, vert, wrld);
+  vision.saveFile(img, save_path);
 }
 
 int main(int argc, char **argv) {

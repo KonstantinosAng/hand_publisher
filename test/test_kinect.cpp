@@ -1,5 +1,5 @@
 /*********************************************************************
-* test_hand.cpp
+* test_kinect.cpp
 *
 * Software License Agreement (BSD License)
 *
@@ -37,28 +37,32 @@
 *********************************************************************/
 
 #include <gtest/gtest.h>
-#include <hand_publisher/HandPublisher.h>
+#include <boost/lexical_cast.hpp>
+#include <hand_publisher/KinectVision.h>
 #include <hand_publisher/config.h>
 
 using namespace raad2015;
 using namespace std;
 
-//TEST(Hand_Publisher, Localization) {
-//  HandPublisher hand;
-//  for (size_t i = 0; i < 21; ++i) {
-//    Point pp;
-//    pp.x = i;
-//    pp.y = 0;
-//    pp.z = 1;
-//    hand.addAverage(pp);
-//  }
-//  EXPECT_FLOAT_EQ(15.5, hand.hand().x);
-//  EXPECT_FLOAT_EQ(0.0, hand.hand().y);
-//  EXPECT_FLOAT_EQ(1.0, hand.hand().z);
-//}
+TEST(Vision_Publisher, Calibration) {
+  KinectVision vision;
+  std::string package_path(PACKAGE_PATH);
+  std::string calibration_path(package_path);
+  calibration_path.append("/config/kinect_calibration.yml");
+  vision.loadIntrinsic(calibration_path);
+  std::string open_path(package_path);
+  open_path.append("/samples/kinect2_rgb.jpg");
+  cv::Mat img = vision.openFile(open_path);
+  vision.calibrateExtrinsic(img);
+  vision.embedOrigin(img);
+//  vision.showImage(img);
+  std::string save_path(package_path);
+  save_path.append("/samples/kinect2_embedded.jpg");
+  vision.saveFile(img,save_path);
+}
 
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);
-  ros::init(argc, argv, "google_test_hand");
+  ros::init(argc, argv, "google_test_kinect");
   return RUN_ALL_TESTS();
 }

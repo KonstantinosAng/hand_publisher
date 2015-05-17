@@ -48,21 +48,11 @@ int main(int argc, char **argv) {
   calibration_path.append("/config/camera_calibration.yml");
 
   raad2015::FabricVision vision;
+  vision.loadCalibration(calibration_path);
   vision.publishTopic("fabric_vertices");
   vision.subscribeTopic("fabric_localization_request");
-  vision.loadCalibration(calibration_path);
-  vision.openCamera(1);
-  vision.calibrate();
-  cv::Mat real_frame;
-  //  vision.thresholdGUI();
   ros::Rate rate(30);
-
   while (ros::ok()) {
-    vision.getFrame();
-    real_frame = vision.image().clone();
-    vision.embedOrigin(real_frame);
-    vision.showFrame(real_frame);
-    vision.applyFilters();
     ros::spinOnce();
     rate.sleep();
   }

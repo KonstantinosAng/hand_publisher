@@ -1,0 +1,35 @@
+%YAML:1.0
+image_width: 1920
+image_height: 1080
+camera_name: narrow_stereo
+camera_matrix: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   # Best data from ethernet:
+   # data: [1542.967706, 0.0, 692.976632, 0.0, 1602.292335, 447.415269, 0.0, 0.0, 1.0]
+   # Default data from IAIkinect2_bridge:
+   # data: [1081.3720703125, 0.000000, 959.5, 0.000000, 1081.3720703125, 539.5, 0.000000, 0.000000, 1.000000]
+   # Best data from USB3
+   data: [1070.898934, 0.000000, 953.403470, 0.000000, 1070.955014, 565.777815, 0.000000, 0.000000, 1.000000]
+distortion_model: plumb_bob
+open: !!opencv-matrix
+   rows: 1
+   cols: 5
+   dt: d
+   # Best data from ethernet:
+   # data: [0.235342, 0.015564, -0.018253, -0.076776, 0.0]
+   # Default data from IAIkinect2_bridge:
+   # data: [0.0, 0.0, 0.0, 0.0, 0.0]
+   # Best data from USB3
+   data: [0.053593, -0.044680, 0.007569, 0.000343, 0.000000]
+rectification_matrix: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: u
+   data: [1, 0, 0, 0, 1, 0, 0, 0, 1]
+projection_matrix: !!opencv-matrix
+   rows: 3
+   cols: 4
+   dt: d
+   data: [1088.969482, 0.0, 953.566825, 0.0, 0.0, 1087.523804, 574.038066, 0.0, 0.0, 0.0, 1.0, 0.0]

@@ -47,6 +47,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <std_msgs/Float64MultiArray.h>
 #include <eigen3/Eigen/Geometry>
+#include <k2_client/BodyArray.h>
 
 using geometry_msgs::Point;
 using geometry_msgs::PointStamped;
@@ -63,6 +64,7 @@ class HandPublisher {
 public:
   void init();
   void publishTopic(const std::string &topic_name);
+  void subscribeTopic(const std::string &topic_name);
   void runLoop();
   void addAverage(Point &hand);
   Point hand() const;
@@ -71,20 +73,28 @@ public:
 
 private:
   void updateTransform();
-
+  void updateHuman();
+  void receivedBody(const k2_client::BodyArray &msg);
+  void publishResults();
   void sendTransform();
 
   ros::NodeHandle node_;
   ros::Publisher publisher_;
-  ros::Publisher vector_pub_;
+//  ros::Publisher vector_pub_;
   ros::Publisher human_orientation_pub_;
+  ros::Subscriber kinect2_body_sub_;
   tf::TransformListener listener_;
   tf::StampedTransform tf_tracker_to_right_hand_;
   tf::StampedTransform tf_tracker_to_right_shoulder_;
   tf::StampedTransform tf_tracker_to_left_shoulder_;
   tf::StampedTransform tf_tracker_to_torso_;
 
+  unsigned long int tracker_id_;
   Point hand_;
+  PoseStamped spine_mid_;
+  PoseStamped right_hand_;
+  PoseStamped filtered_mid_;
+  PoseStamped filtered_hand_;
   std::deque<Point> hand_points_;
 };
 }
