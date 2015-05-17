@@ -102,6 +102,7 @@ public:
                     const std::vector<std::vector<cv::Point> > &contours) const;
   void thresholdGUI(const std::string &window_name = "HSV Control");
   cv::Mat undistort(const cv::Mat &image);
+  void publishTransformation();
 private:
   void morphologicalOpening(cv::Mat &image, int radius = 5);
   void morphologicalClosing(cv::Mat &image, int radius = 5);
@@ -121,6 +122,7 @@ private:
   void fabricRequest(const std_msgs::Bool &msg);
   void publishResults(const std::vector<cv::Point3f> &vertices);
   cv::Point2f transformPoint(cv::Point2f current, cv::Mat transformation);
+  void calculateTransformation();
 
   FilterHSV filter_;
   cv::Mat camera_matrix_;
@@ -130,10 +132,12 @@ private:
   cv::Mat tvec_;
   cv::Mat rvec_;
   double scale_;
+  tf::Transform tf_;
 
   ros::NodeHandle node_;
   ros::Publisher publisher_;
   ros::Subscriber subscriber_;
+  tf::TransformBroadcaster br_;
   bool intrinsic_calibrated_;
   bool extrinsic_calibrated_;
 };

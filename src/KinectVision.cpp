@@ -100,6 +100,7 @@ void KinectVision::calibrateExtrinsic(const cv::Mat &image)
     cv::Rodrigues(rvec_, rmat_);
     cv::Mat scale_mat = camera_matrix_ * ( rmat_ * cv::Mat(board_points[0]) + tvec_ );
     scale_ = scale_mat.at<double>(0,2);
+    this->calculateTransformation();
   }
   else {
     ROS_ERROR("Checkerboard not found!");
@@ -164,6 +165,36 @@ void KinectVision::embedOrigin(cv::Mat &image)
 void KinectVision::saveFile(const cv::Mat &image,
                             const std::string &filename) const {
   cv::imwrite(filename, image);
+}
+
+void KinectVision::publishTransform()
+{
+  try {
+    tf::StampedTransform stmp_trn(tf_, ros::Time::now(), "/camera_checkerboard", "/tracker_rgb_frame");
+    br_.sendTransform(stmp_trn);
+  }
+  catch (...) {
+    ROS_ERROR("Exception thrown while publishing transformation");
+  }
+}
+
+void KinectVision::calculateTransformation()
+{
+  tf::Matrix3x3 rot;
+  rot[0][0] = rmat_.at<double>(0,0);
+  rot[0][1] = rmat_.at<double>(0,1);
+  rot[0][2] = rmat_.at<double>(0,2);
+  rot[1][0] = rmat_.at<double>(1,0);
+  rot[1][1] = rmat_.at<double>(1,1);
+  rot[1][2] = rmat_.at<double>(1,2);
+  rot[2][0] = rmat_.at<double>(2,0);
+  rot[2][1] = rmat_.at<double>(2,1);
+  rot[2][2] = rmat_.at<double>(2,2);
+  tf::Vector3 tran(tvec_.at<double>(0,0)/100.0,
+                   tvec_.at<double>(1,0)/100.0,
+                   tvec_.at<double>(2,0)/100.0);
+  tf::Transform trans = tf::Transform(rot, tran);
+  tf_ = trans.inverse();
 }
 
 }

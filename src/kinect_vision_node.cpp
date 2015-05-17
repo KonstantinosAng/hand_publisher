@@ -1,5 +1,5 @@
 /*********************************************************************
-* KinectVision.h
+* kinect_vision_node.cpp
 *
 * Software License Agreement (BSD License)
 *
@@ -36,57 +36,32 @@
 * Authors: Aris Synodinos
 *********************************************************************/
 
-#ifndef KINECT_VISION_H
-#define KINECT_VISION_H
-
 #include <ros/ros.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/image_encodings.h>
-#include <opencv2/opencv.hpp>
-#include <cv_bridge/cv_bridge.h>
-#include <tf/transform_broadcaster.h>
+#include <hand_publisher/KinectVision.h>
+#include <hand_publisher/config.h>
 
-namespace raad2015 {
+int main(int argc, char **argv) {
+  ros::init(argc, argv, "kinect_vision_node");
+  ros::NodeHandle n;
+  std::string package_path(PACKAGE_PATH);
+  std::string calibration_path(package_path);
+  calibration_path.append("/config/kinect_calibration.yml");
 
-class Color
-{
-public:
-  static cv::Scalar ColorBlue;
-  static cv::Scalar ColorRed;
-  static cv::Scalar ColorGreen;
-  static cv::Scalar ColorWhite;
-  static cv::Scalar ColorBlack;
-};
+  raad2015::KinectVision kinect;
+  kinect.loadIntrinsic(calibration_path);
 
-class KinectVision
-{
-public:
-  KinectVision();
-  cv::Mat openFile(const std::string &filename);
-  void showImage(const cv::Mat &image,
-                 const std::string &window_name = "Display Inage") const;
-  void loadIntrinsic(const std::string &filename);
-  void calibrateExtrinsic(const cv::Mat &image);
-  void embedOrigin(cv::Mat &image);
-  void saveFile(const cv::Mat &image,
-                const std::string &filename) const;
-  void publishTransform();
-private:
-  void imageCallBack(const sensor_msgs::ImageConstPtr& msg);
-  void calculateTransformation();
+  /* Just for testing */
+  std::string open_path(package_path);
+  open_path.append("/samples/kinect2_rgb.jpg");
+  cv::Mat img = kinect.openFile(open_path);
+  kinect.calibrateExtrinsic(img);
+  /* Testing */
 
-  ros::NodeHandle node_;
-  ros::Subscriber sub_;
-  tf::TransformBroadcaster br_;
-  cv::Mat camera_matrix_;
-  cv::Mat distortion_matrix_;
-  cv::Mat rmat_;
-  cv::Mat tvec_;
-  cv::Mat rvec_;
-  tf::Transform tf_;
-  double scale_;
-};
-
+  ros::Rate rate(30);
+  while (ros::ok()) {
+    kinect.publishTransform();
+    ros::spinOnce();
+    rate.sleep();
+  }
+  return 0;
 }
-
-#endif // KINECT_VISION_H

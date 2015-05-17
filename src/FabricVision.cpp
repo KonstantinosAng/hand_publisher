@@ -124,6 +124,7 @@ cv::Mat FabricVision::calibrateExtrinsic(const cv::Mat &image)
     cv::Rodrigues(this->rvec_, this->rmat_);
     cv::Mat scale_mat = camera_matrix_ * ( rmat_ * cv::Mat(board_points[0]) + tvec_ );
     scale_ = scale_mat.at<double>(0,2);
+    this->calculateTransformation();
     this->extrinsic_calibrated_ = true;
     return img;
   }
@@ -593,6 +594,36 @@ cv::Mat FabricVision::embedPoints(const cv::Mat &image,
   }
 
   return img;
+}
+
+void FabricVision::calculateTransformation()
+{
+  tf::Matrix3x3 rot;
+  rot[0][0] = rmat_.at<double>(0,0);
+  rot[0][1] = rmat_.at<double>(0,1);
+  rot[0][2] = rmat_.at<double>(0,2);
+  rot[1][0] = rmat_.at<double>(1,0);
+  rot[1][1] = rmat_.at<double>(1,1);
+  rot[1][2] = rmat_.at<double>(1,2);
+  rot[2][0] = rmat_.at<double>(2,0);
+  rot[2][1] = rmat_.at<double>(2,1);
+  rot[2][2] = rmat_.at<double>(2,2);
+  tf::Vector3 tran(tvec_.at<double>(0,0)/100.0,
+                   tvec_.at<double>(1,0)/100.0,
+                   tvec_.at<double>(2,0)/100.0);
+  tf::Transform trans = tf::Transform(rot, tran);
+  tf_ = trans.inverse();
+}
+
+void FabricVision::publishTransformation()
+{
+  try {
+    tf::StampedTransform stmp_trn(tf_, ros::Time::now(), "/camera_checkerboard", "/camera_frame");
+    br_.sendTransform(stmp_trn);
+  }
+  catch (...) {
+    ROS_ERROR("Exception thrown while publishing transformation");
+  }
 }
 
 }

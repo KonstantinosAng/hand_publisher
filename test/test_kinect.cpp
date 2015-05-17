@@ -55,7 +55,6 @@ TEST(Vision_Publisher, Calibration) {
   cv::Mat img = vision.openFile(open_path);
   vision.calibrateExtrinsic(img);
   vision.embedOrigin(img);
-//  vision.showImage(img);
   std::string save_path(package_path);
   save_path.append("/samples/kinect2_embedded.jpg");
   vision.saveFile(img,save_path);

@@ -30,8 +30,7 @@ target_link_libraries(serial_communication_node     ${catkin_LIBRARIES}
                                                     ${Boost_LIBRARIES})
 
 add_executable(skeleton_to_hand_node ${HEADERS}     src/skeleton_to_hand.cpp
-                                                    src/HandPublisher.cpp
-                                                    src/KinectVision.cpp)
+                                                    src/HandPublisher.cpp)
 target_link_libraries(skeleton_to_hand_node         ${catkin_LIBRARIES})
 add_dependencies(skeleton_to_hand_node              k2_client_gencpp)
 
@@ -43,6 +42,10 @@ target_link_libraries(fabric_vision_node            ${catkin_LIBRARIES}
 add_executable(coordination_node ${HEADERS}         src/coordination_node.cpp
                                                     src/Coordination.cpp)
 target_link_libraries(coordination_node             ${catkin_LIBRARIES})
+
+add_executable(kinect_vision_node ${HEADERS}       src/kinect_vision_node.cpp
+                                                    src/KinectVision.cpp)
+target_link_libraries(kinect_vision_node            ${catkin_LIBRARIES})
 
 #############
 ## Install ##

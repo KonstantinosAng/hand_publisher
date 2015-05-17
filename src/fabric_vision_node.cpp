@@ -49,10 +49,19 @@ int main(int argc, char **argv) {
 
   raad2015::FabricVision vision;
   vision.loadCalibration(calibration_path);
+
+  /* Just for testing */
+  std::string open_path(package_path);
+  open_path.append("/samples/testing.jpg");
+  cv::Mat img = vision.openFile(open_path);
+  vision.calibrateExtrinsic(img);
+  /* Testing */
+
   vision.publishTopic("fabric_vertices");
   vision.subscribeTopic("fabric_localization_request");
   ros::Rate rate(30);
   while (ros::ok()) {
+    vision.publishTransformation();
     ros::spinOnce();
     rate.sleep();
   }
