@@ -48,7 +48,11 @@ cv::Scalar Color::ColorBlack(0, 0, 0);
 
 KinectVision::KinectVision()
 {
-  node_.subscribe("/kinect2/rgb_frame", 1, &KinectVision::imageCallBack, this);
+}
+
+void KinectVision::subscribeTopic(const std::string &topic_name)
+{
+  node_.subscribe(topic_name, 10, &KinectVision::imageCallBack, this);
 }
 
 void KinectVision::imageCallBack(const sensor_msgs::ImageConstPtr& msg)

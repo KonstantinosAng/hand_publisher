@@ -48,7 +48,7 @@ TEST(Vision_Publisher, Calibration) {
   KinectVision vision;
   std::string package_path(PACKAGE_PATH);
   std::string calibration_path(package_path);
-  calibration_path.append("/config/kinect_calibration.yml");
+  calibration_path.append("/config/kinect_calibration.yaml");
   vision.loadIntrinsic(calibration_path);
   std::string open_path(package_path);
   open_path.append("/samples/kinect2_rgb.jpg");

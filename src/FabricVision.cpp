@@ -39,6 +39,7 @@
 #include <hand_publisher/FabricVision.h>
 #include <cmath>
 #include <hand_publisher/config.h>
+#include <cv_bridge/cv_bridge.h>
 
 namespace raad2015 {
 
@@ -57,11 +58,13 @@ FabricVision::FabricVision() {
   this->filter_.high_value = 255;
   this->intrinsic_calibrated_ = false;
   this->extrinsic_calibrated_ = false;
+  this->received_image_ = false;
 }
 
-void FabricVision::subscribeTopic(const std::string &topic_name) {
-  subscriber_ =
-      node_.subscribe(topic_name, 10, &FabricVision::fabricRequest, this);
+void FabricVision::subscribeTopic(const std::string &fabric_request_name,
+                                  const std::string &image_callback_name) {
+  subscriber_ = node_.subscribe(fabric_request_name, 10, &FabricVision::fabricRequest, this);
+  img_sub_ = node_.subscribe(image_callback_name, 10, &FabricVision::imageCallback, this);
 }
 
 void FabricVision::publishTopic(const std::string &topic_name) {
@@ -74,65 +77,69 @@ cv::Mat FabricVision::calibrateExtrinsic(const cv::Mat &image)
     ROS_ERROR("Camera not calibrated. Have you loaded the calibration file?");
     exit(-1);
   }
-  cv::Mat img = image.clone();
-  cv::Size checkerboard = cv::Size(7, 10); // A3 Checkerboard
-  // Create actual board points
-  std::vector<cv::Point3d> board_points;
-  for (size_t i = 0; i < 10; ++i)
-    for (size_t j = 0; j < 7; ++j)
-      board_points.push_back(cv::Point3d(3.4 * i, 3.4 * j, 0.0));
+  if (!this->extrinsic_calibrated_)
+  {
+    cv::Mat img = image.clone();
+    cv::Size checkerboard = cv::Size(7, 10); // A3 Checkerboard
+    // Create actual board points
+    std::vector<cv::Point3d> board_points;
+    for (size_t i = 0; i < 10; ++i)
+      for (size_t j = 0; j < 7; ++j)
+        board_points.push_back(cv::Point3d(3.4 * i, 3.4 * j, 0.0));
 
-  // Try to find checkerboard
-  bool found;
-  std::vector<cv::Point2f> found_points;
-  found = cv::findChessboardCorners(img,
-                                    checkerboard,
-                                    found_points,
-                                    cv::CALIB_CB_ADAPTIVE_THRESH+
-                                    cv::CALIB_CB_NORMALIZE_IMAGE+
-                                    cv::CALIB_CB_FILTER_QUADS);
-  if (found) {
-    ROS_INFO("Found Checkerboard");
-    cv::drawChessboardCorners(img,
-                              checkerboard,
-                              cv::Mat(found_points),
-                              found);
+    // Try to find checkerboard
+    bool found;
+    std::vector<cv::Point2f> found_points;
+    found = cv::findChessboardCorners(img,
+                                      checkerboard,
+                                      found_points,
+                                      cv::CALIB_CB_ADAPTIVE_THRESH+
+                                      cv::CALIB_CB_NORMALIZE_IMAGE+
+                                      cv::CALIB_CB_FILTER_QUADS);
+    if (found) {
+      ROS_INFO("Found Checkerboard");
+      cv::drawChessboardCorners(img,
+                                checkerboard,
+                                cv::Mat(found_points),
+                                found);
 
-    cv::solvePnP(cv::Mat(board_points),
-                 cv::Mat(found_points),
-                 this->camera_matrix_,
-                 this->distortion_matrix_,
-                 this->rvec_,
-                 this->tvec_,
-                 false,
-                 CV_ITERATIVE);
-    // Only use four points to get Perspective Transform
-    std::vector<cv::Point2f> img_pts, wrl_pts;
-    {
-      wrl_pts.push_back(cv::Point2f(board_points[0].x, board_points[0].y));
-      img_pts.push_back(found_points[0]);
-      wrl_pts.push_back(cv::Point2f(board_points[6].x, board_points[6].y));
-      img_pts.push_back(found_points[6]);
-      wrl_pts.push_back(cv::Point2f(board_points[63].x, board_points[63].y));
-      img_pts.push_back(found_points[63]);
-      wrl_pts.push_back(cv::Point2f(board_points[69].x, board_points[69].y));
-      img_pts.push_back(found_points[69]);
+      cv::solvePnP(cv::Mat(board_points),
+                   cv::Mat(found_points),
+                   this->camera_matrix_,
+                   this->distortion_matrix_,
+                   this->rvec_,
+                   this->tvec_,
+                   false,
+                   CV_ITERATIVE);
+      // Only use four points to get Perspective Transform
+      std::vector<cv::Point2f> img_pts, wrl_pts;
+      {
+        wrl_pts.push_back(cv::Point2f(board_points[0].x, board_points[0].y));
+        img_pts.push_back(found_points[0]);
+        wrl_pts.push_back(cv::Point2f(board_points[6].x, board_points[6].y));
+        img_pts.push_back(found_points[6]);
+        wrl_pts.push_back(cv::Point2f(board_points[63].x, board_points[63].y));
+        img_pts.push_back(found_points[63]);
+        wrl_pts.push_back(cv::Point2f(board_points[69].x, board_points[69].y));
+        img_pts.push_back(found_points[69]);
+      }
+
+      this->image_to_checkerboard_ = cv::getPerspectiveTransform(img_pts, wrl_pts);
+
+      cv::Rodrigues(this->rvec_, this->rmat_);
+      cv::Mat scale_mat = camera_matrix_ * ( rmat_ * cv::Mat(board_points[0]) + tvec_ );
+      scale_ = scale_mat.at<double>(0,2);
+      this->calculateTransformation();
+      this->extrinsic_calibrated_ = true;
+      return img;
     }
-
-    this->image_to_checkerboard_ = cv::getPerspectiveTransform(img_pts, wrl_pts);
-
-    cv::Rodrigues(this->rvec_, this->rmat_);
-    cv::Mat scale_mat = camera_matrix_ * ( rmat_ * cv::Mat(board_points[0]) + tvec_ );
-    scale_ = scale_mat.at<double>(0,2);
-    this->calculateTransformation();
-    this->extrinsic_calibrated_ = true;
-    return img;
-  }
-  else {
-    ROS_ERROR("Checkerboard not found!");
-    exit(-2);
+    else {
+      ROS_ERROR("Checkerboard not found!");
+      exit(-2);
+    }
   }
 }
+
 
 cv::Mat FabricVision::embedOrigin(const cv::Mat &image)
 {
@@ -517,19 +524,19 @@ double FabricVision::angle(cv::Point pt1, cv::Point pt2, cv::Point pt0) const
 void FabricVision::fabricRequest(const std_msgs::Bool &msg)
 {
   // Requested localization
-  cv::VideoCapture camera = this->openCamera(0);
-  cv::Mat img = this->getFrame(camera);
-  img = this->calibrateExtrinsic(img);
-  img = this->undistort(img);
-  img = this->applyFilters(img);
-  std::vector<cv::Point2f> vertices = this->calculateVertices(img);
-  std::vector<cv::Point3f> world = this->projectTo3D(vertices);
-  this->publishResults(world);
+  if (msg.data == true) {
+    if (received_image_) {
+      cv::Mat img = this->undistort(img_);
+      img = this->applyFilters(img);
+      std::vector<cv::Point2f> vertices = this->calculateVertices(img);
+      std::vector<cv::Point3f> world = this->projectTo3D(vertices);
+      this->publishResults(world);
+    }
+  }
 }
 
 std::vector<cv::Point3f> FabricVision::projectTo3D(const std::vector<cv::Point2f> &image_points)
 {
-
   std::vector<cv::Point3f> projected_points;
   for (size_t i = 0; i < image_points.size(); i++) {
     cv::Point2f world_point = this->transformPoint(image_points[i], image_to_checkerboard_);
@@ -625,5 +632,30 @@ void FabricVision::publishTransformation()
     ROS_ERROR("Exception thrown while publishing transformation");
   }
 }
+
+void FabricVision::imageCallback(const sensor_msgs::ImageConstPtr &msg)
+{
+  cv_bridge::CvImagePtr cv_ptr;
+  try {
+    cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+  }
+  catch (cv_bridge::Exception &e) {
+    ROS_ERROR("cv_bridge exception: %s", e.what());
+    return;
+  }
+  this->img_ = cv_ptr->image;
+  this->received_image_ = true;
+}
+
+cv::Mat FabricVision::img() const
+{
+  return img_;
+}
+
+void FabricVision::setImg(const cv::Mat &img)
+{
+  img_ = img;
+}
+
 
 }

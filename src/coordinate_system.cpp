@@ -18,7 +18,7 @@ int boardWidth = 10;
 Size cbSize = Size(boardHeight, boardWidth);
 
 string filename = "/home/aris/source/indigo/raad2015_ws/src/hand_publisher/"
-                  "config/camera_calibration.yml";
+                  "config/camera_calibration.yaml";
 
 bool doneYet = false;
 

@@ -45,19 +45,29 @@ int main(int argc, char **argv) {
   ros::NodeHandle n;
   std::string package_path(PACKAGE_PATH);
   std::string calibration_path(package_path);
-  calibration_path.append("/config/kinect_calibration.yml");
+  calibration_path.append("/config/kinect_calibration.yaml");
 
   raad2015::KinectVision kinect;
   kinect.loadIntrinsic(calibration_path);
 
+  kinect.subscribeTopic("kinect2/rgb/image_color");
+
+  // Wait to receive the first image
+  ros::topic::waitForMessage<sensor_msgs::Image>("kinect2/rgb/image_color");
+  // Spin to perform the extrinsic calibration
+  ros::spinOnce();
+  ros::Rate rate(30);
+  rate.sleep();
+
   /* Just for testing */
-  std::string open_path(package_path);
-  open_path.append("/samples/kinect2_rgb.jpg");
-  cv::Mat img = kinect.openFile(open_path);
-  kinect.calibrateExtrinsic(img);
+  // ros::Duration(1).sleep(); //sleep for a few moments
+  // ros::spinOnce();
+  // std::string open_path(package_path);
+  // open_path.append("/samples/kinect2_rgb.jpg");
+  // cv::Mat img = kinect.openFile(open_path);
+  // kinect.calibrateExtrinsic(img);
   /* Testing */
 
-  ros::Rate rate(30);
   while (ros::ok()) {
     kinect.publishTransform();
     ros::spinOnce();

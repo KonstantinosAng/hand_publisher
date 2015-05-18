@@ -48,7 +48,7 @@ TEST(Hand_Publisher, Fabric_Calibration) {
   FabricVision vision;
   std::string package_path(PACKAGE_PATH);
   std::string calibration_path(package_path);
-  calibration_path.append("/config/camera_calibration.yml");
+  calibration_path.append("/config/camera_calibration.yaml");
   std::string open_path(package_path);
   open_path.append("/samples/testing.jpg");
   vision.loadCalibration(calibration_path);
@@ -71,7 +71,7 @@ TEST(Hand_Publisher, Fabric_Vision) {
   FabricVision vision;
   std::string package_path(PACKAGE_PATH);
   std::string calibration_path(package_path);
-  calibration_path.append("/config/camera_calibration.yml");
+  calibration_path.append("/config/camera_calibration.yaml");
   vision.loadCalibration(calibration_path);
 
   std::vector<std::vector<cv::Point> > contours;
@@ -97,9 +97,9 @@ TEST(Hand_Publisher, Localization) {
   FabricVision vision;
   std::string package_path(PACKAGE_PATH);
   std::string calibration_path(package_path);
-  calibration_path.append("/config/camera_calibration.yml");
+  calibration_path.append("/config/camera_calibration.yaml");
   std::string open_path(package_path);
-  open_path.append("/samples/testing.jpg");
+  open_path.append("/samples/received_image.jpg");
   vision.loadCalibration(calibration_path);
   cv::Mat img = vision.openFile(open_path);
   img = vision.calibrateExtrinsic(img);

@@ -65,6 +65,12 @@ typedef enum {
   COOP
 }State_t;
 
+typedef struct {
+  double x;
+  double y;
+  double z;
+}RobotLimits_t;
+
 class Coordination
 {
 public:
@@ -111,6 +117,9 @@ private:
   bool vision_sent_;
   int human_gripped_point_index_;
   int robot_gripped_point_index_;
+
+  RobotLimits_t low_limits_;
+  RobotLimits_t high_limits_;
   std::deque<PointStamped> hand_positions_;
   std::vector<PointStamped> fabric_vertices_;
   PointStamped human_orientation_;

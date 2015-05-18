@@ -45,21 +45,31 @@ int main(int argc, char **argv) {
   ros::NodeHandle n;
   std::string package_path(PACKAGE_PATH);
   std::string calibration_path(package_path);
-  calibration_path.append("/config/camera_calibration.yml");
+  calibration_path.append("/config/camera_calibration.yaml");
 
   raad2015::FabricVision vision;
   vision.loadCalibration(calibration_path);
 
   /* Just for testing */
-  std::string open_path(package_path);
-  open_path.append("/samples/testing.jpg");
-  cv::Mat img = vision.openFile(open_path);
-  vision.calibrateExtrinsic(img);
+  // std::string open_path(package_path);
+  // open_path.append("/samples/testing.jpg");
+  // cv::Mat img = vision.openFile(open_path);
+  // vision.calibrateExtrinsic(img);
   /* Testing */
 
   vision.publishTopic("fabric_vertices");
-  vision.subscribeTopic("fabric_localization_request");
-  ros::Rate rate(30);
+  vision.subscribeTopic("fabric_localization_request", "image_raw");
+
+  // Wait to receive the first image
+  ros::topic::waitForMessage<sensor_msgs::Image>("image_raw");
+  ros::spinOnce();
+  ros::Rate rate(50);
+  rate.sleep();
+  // Perform initial Calibration
+  cv::Mat img = vision.img();
+  vision.calibrateExtrinsic(img);
+
+  // Keep Spinning and Publishing the Transformation
   while (ros::ok()) {
     vision.publishTransformation();
     ros::spinOnce();

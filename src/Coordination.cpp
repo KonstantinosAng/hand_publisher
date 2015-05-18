@@ -44,6 +44,14 @@ namespace raad2015{
 
 Coordination::Coordination()
 {
+  ros::NodeHandle np("~");
+  np.param("robot_hard_limits/low/x", low_limits_.x, -DBL_MAX);
+  np.param("robot_hard_limits/low/y", low_limits_.x, -DBL_MAX);
+  np.param("robot_hard_limits/low/z", low_limits_.x, -DBL_MAX);
+  np.param("robot_hard_limits/high/x", high_limits_.x, DBL_MAX);
+  np.param("robot_hard_limits/high/y", high_limits_.x, DBL_MAX);
+  np.param("robot_hard_limits/high/z", high_limits_.x, DBL_MAX);
+
   current_state_ = IDLE;
   // Subscribe to Vision
   vision_sub_ = node_.subscribe("/fabric_vertices",
@@ -69,30 +77,20 @@ Coordination::Coordination()
                                        &Coordination::humanOrientation,
                                        this);
   // Advertise Publishers
-  vision_req_ = node_.advertise<Bool>("/fabric_localization_request",
-                                                1);
-  serial_cmd_ = node_.advertise<String>("/serial_outgoing_messages",
-                                                  1);
-  fabric_point0_pub_ = node_.advertise<PointStamped>("/fabric_point0",
-                                                    1);
-  fabric_point1_pub_ = node_.advertise<PointStamped>("/fabric_point1",
-                                                    1);
-  fabric_point2_pub_ = node_.advertise<PointStamped>("/fabric_point2",
-                                                    1);
-  fabric_point3_pub_ = node_.advertise<PointStamped>("/fabric_point3",
-                                                    1);
-  human_gripped_point_pub_ = node_.advertise<PointStamped>("/human_gripped_point",
-                                                    1);
-  robot_gripped_point_pub_ = node_.advertise<PointStamped>("/robot_gripped_point",
-                                                    1);
+  vision_req_ = node_.advertise<Bool>("/fabric_localization_request", 1);
+  serial_cmd_ = node_.advertise<String>("/serial_outgoing_messages", 1);
+  fabric_point0_pub_ = node_.advertise<PointStamped>("/fabric_point0", 1);
+  fabric_point1_pub_ = node_.advertise<PointStamped>("/fabric_point1", 1);
+  fabric_point2_pub_ = node_.advertise<PointStamped>("/fabric_point2", 1);
+  fabric_point3_pub_ = node_.advertise<PointStamped>("/fabric_point3", 1);
+  human_gripped_point_pub_ = node_.advertise<PointStamped>("/human_gripped_point", 1);
+  robot_gripped_point_pub_ = node_.advertise<PointStamped>("/robot_gripped_point", 1);
   robot_ready_ = false;
   vision_sent_ = false;
   gripped_ = false;
   robot_moved_ = false;
-//  ros::Duration(5).sleep();
-  // Request from fabric vision node
-  while(!vision_sent_ && ros::ok())
-  {
+
+  while(!vision_sent_ && ros::ok()) {
     this->requestFabricData();
     ros::Duration(1).sleep();
     ros::spinOnce();
@@ -181,16 +179,13 @@ void Coordination::humanOrientation(const PointStamped &msg)
 void Coordination::serial(const String &msg)
 {
 //  ROS_ERROR("String received is %s", msg.data.c_str());
-  if (msg.data.compare("epeiasa\n") == 0)
-  {
+  if (msg.data.compare("GRABBED\n") == 0) {
     robot_ready_ = true;
   }
-  if (msg.data.compare("RELEASED\n") == 0)
-  {
+  if (msg.data.compare("RELEASED\n") == 0) {
     gripped_ = false;
   }
-  if (msg.data.compare("steile\n") == 0)
-  {
+  if (msg.data.compare("SEND\n") == 0) {
     robot_moved_ = true;
   }
 }
@@ -204,8 +199,7 @@ bool Coordination::isNearFabric(double distance)
   // Transform hand position to the same frame
   listener_.transformPoint(fabric_vertices_.at(0).header.frame_id, hand_position_tracker, hand_position_camera);
 
-  for (size_t i = 0; i < fabric_vertices_.size(); ++i)
-  {
+  for (size_t i = 0; i < fabric_vertices_.size(); ++i) {
     double distance = this->l2distance(fabric_vertices_[i].point, hand_position_camera.point);
     distances.push_back(distance);
   }
@@ -216,8 +210,7 @@ bool Coordination::isNearFabric(double distance)
 //            fabric_vertices_[close_element].point.x - hand_position_camera.point.x,
 //            fabric_vertices_[close_element].point.y - hand_position_camera.point.y,
 //            fabric_vertices_[close_element].point.z - hand_position_camera.point.z);
-  if (close_element_distance < distance)
-  {
+  if (close_element_distance < distance) {
     human_gripped_point_index_ = close_element;
     gripped_ = true;
     return true;
@@ -239,10 +232,8 @@ int Coordination::findMinValue(const std::vector<double> &data, double &value)
 {
   int min_element;
   value = std::numeric_limits<double>::max();
-  for (size_t i = 0; i < data.size(); ++i)
-  {
-    if (data[i] < value)
-    {
+  for (size_t i = 0; i < data.size(); ++i) {
+    if (data[i] < value) {
       value = data[i];
       min_element = i;
     }
@@ -254,10 +245,8 @@ int Coordination::findMaxValue(const std::vector<double> &data, double &value)
 {
   int max_element;
   value = - std::numeric_limits<double>::max();
-  for (size_t i = 0; i < data.size(); ++i)
-  {
-    if (data[i] > value)
-    {
+  for (size_t i = 0; i < data.size(); ++i) {
+    if (data[i] > value) {
       value = data[i];
       max_element = i;
     }
@@ -272,8 +261,7 @@ bool Coordination::isHandMoving(const double &radius)
     std::vector<double> hand_x;
     std::vector<double> hand_y;
     std::vector<double> hand_z;
-    for (size_t i = 0; i < hand_positions_.size(); ++i)
-    {
+    for (size_t i = 0; i < hand_positions_.size(); ++i) {
       hand_x.push_back(hand_positions_[i].point.x);
       hand_y.push_back(hand_positions_[i].point.y);
       hand_z.push_back(hand_positions_[i].point.z);
@@ -291,7 +279,6 @@ bool Coordination::isHandMoving(const double &radius)
     double dz = max_z - min_z;
 
     if ( dx < radius && dy < radius && dz < radius) {
-//      ROS_ERROR("HAND IS STABLE");
       return false;
     }
   }
@@ -355,12 +342,20 @@ void Coordination::sendRobotCurrent()
     robot_cmd_.point.y = robot_gripped_point.point.y + dx;
     robot_cmd_.point.z = robot_gripped_point.point.z + dz;
 
-    if (robot_cmd_.point.z < 0.31)
-      robot_cmd_.point.z = 0.31;
-    if (robot_cmd_.point.z > 0.39)
-      robot_cmd_.point.z = 0.39;
-    if (robot_cmd_.point.x > 0.67)
-      robot_cmd_.point.x = 0.67;
+    // Threshold the robot commands
+    if (robot_cmd_.point.x < low_limits_.x)
+      robot_cmd_.point.x = low_limits_.x;
+    if (robot_cmd_.point.y < low_limits_.y)
+      robot_cmd_.point.y = low_limits_.y;
+    if (robot_cmd_.point.z < low_limits_.z)
+      robot_cmd_.point.z = low_limits_.z;
+
+    if (robot_cmd_.point.x > high_limits_.x)
+      robot_cmd_.point.x = high_limits_.x;
+    if (robot_cmd_.point.y > high_limits_.y)
+      robot_cmd_.point.y = high_limits_.y;
+    if (robot_cmd_.point.z > high_limits_.z)
+      robot_cmd_.point.z = high_limits_.z;
 
     std_msgs::String msg;
     char char_msg[200];
@@ -382,9 +377,11 @@ void Coordination::requestFabricData()
 PointStamped Coordination::calculateGrippingPoint()
 {
   std::vector<double> angles;
+  PointStamped normal_to_chess;
+  listener_.transformPoint("/camera_checkerboard", human_orientation_, normal_to_chess);
+
   for (size_t i = 0; i < fabric_vertices_.size(); ++i) {
-    if ( i == human_gripped_point_index_)
-    {
+    if ( i == human_gripped_point_index_) {
       angles.push_back(std::numeric_limits<double>::max());
       continue;
     }
@@ -393,14 +390,17 @@ PointStamped Coordination::calculateGrippingPoint()
     edge.setY(std::abs(fabric_vertices_[i].point.y - fabric_vertices_[human_gripped_point_index_].point.y));
     edge.setZ(std::abs(fabric_vertices_[i].point.z - fabric_vertices_[human_gripped_point_index_].point.z));
     Vector3 normal;
-    normal.setX(human_orientation_.point.x);
-    normal.setY(human_orientation_.point.y);
-    normal.setZ(human_orientation_.point.z);
+    normal.setX(normal_to_chess.point.x);
+    normal.setY(normal_to_chess.point.y);
+    normal.setZ(normal_to_chess.point.z);
     double angle = tf::tfAngle(edge,normal);
+    if (abs(angle - 3.14159) < angle)
+      angle = abs(angle - 3.14159);
     angles.push_back(angle);
   }
   double angle;
   robot_gripped_point_index_ = this->findMinValue(angles,angle);
+  ROS_ERROR("Angle was calculated %f", angle);
   return (fabric_vertices_[robot_gripped_point_index_]);
 }
 

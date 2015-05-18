@@ -5,11 +5,18 @@
 		<param name="tf_prefix" value="tracker" />
 		<param name="relative_frame" value="/tracker_depth_frame" />
 	</node> -->
+    <node name="mswebcam" pkg="uvc_camera" type="uvc_camera_node" output="screen">
+      <param name="device" value="/dev/video0" />
+      <param name="width" value="1280" />
+      <param name="height" value="720" />
+      <param name="format" value="jpeg" />
+    </node>
+
 	<param name="serverNameOrIP" value="10.42.0.70" />
-<!--     <group ns="/kinect2">
+    <group ns="/kinect2">
     	<node name="startRGB" pkg="k2_client" type="startRGB"/>
         <node name="startBody" pkg="k2_client" type="startBody"/>
-    </group> -->
+    </group>
 
 	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find hand_publisher)/config/display.rviz" />
 	<!-- Load Tf To String Node -->
@@ -19,7 +26,9 @@
 	<!-- Load communication node -->
 	<!-- <node name="serial_comms_node" pkg="hand_publisher" type="serial_communication_node" /> -->
 
-	<!-- <node name="coordination" pkg="hand_publisher" type="coordination_node" /> -->
+	<node name="coordination" pkg="hand_publisher" type="coordination_node" >
+		<rosparam file="$(find hand_publisher)/config/coordination.yaml" command="load" />
+	</node>
 
 	<!-- Load Kinect Localization Node -->
 	<node name="kinect2_localization" pkg="hand_publisher" type="kinect_vision_node" />
@@ -27,7 +36,7 @@
 	<!-- TF Static Transforms to World -->
 	<node pkg="tf" type="static_transform_publisher" name="world_to_robot" args="0 0 0.532 0 0 0 /world /robot_frame 100" />
 	<!-- <node pkg="tf" type="static_transform_publisher" name="world_to_tracker" args="0.5 1.925 1.60 0 0 1.6707  /world /tracker_depth_frame 100"/>  -->
-	<node pkg="tf" type="static_transform_publisher" name="depth_to_rgb" args="-0.052 0 0 0 0 0 /tracker_rgb_frame /tracker_depth_frame 100"/> 
+	<node pkg="tf" type="static_transform_publisher" name="depth_to_rgb" args="-0.052 0 0 3.14159 0 0 /tracker_rgb_frame /tracker_depth_frame 100"/> 
 	<node pkg="tf" type="static_transform_publisher" name="world_to_camera_checkerboard" args=" 0.7 0.35 0.83 -1.5707 0 0 /world /camera_checkerboard 100" />
 </launch>
 

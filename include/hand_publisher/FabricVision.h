@@ -43,6 +43,8 @@
 #include <ros/ros.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float64MultiArray.h>
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/image_encodings.h>
 #include <opencv2/opencv.hpp>
 #include <tf/transform_broadcaster.h>
 
@@ -77,7 +79,8 @@ typedef struct {
 class FabricVision {
 public:
   FabricVision();
-  void subscribeTopic(const std::string &topic_name);
+  void subscribeTopic(const std::string &fabric_request_name,
+                      const std::string &image_callback_name);
   void publishTopic(const std::string &topic_name);
   cv::Mat calibrateExtrinsic(const cv::Mat &image);
   cv::Mat embedOrigin(const cv::Mat &image);
@@ -103,6 +106,9 @@ public:
   void thresholdGUI(const std::string &window_name = "HSV Control");
   cv::Mat undistort(const cv::Mat &image);
   void publishTransformation();
+  cv::Mat img() const;
+  void setImg(const cv::Mat &img);
+
 private:
   void morphologicalOpening(cv::Mat &image, int radius = 5);
   void morphologicalClosing(cv::Mat &image, int radius = 5);
@@ -123,8 +129,10 @@ private:
   void publishResults(const std::vector<cv::Point3f> &vertices);
   cv::Point2f transformPoint(cv::Point2f current, cv::Mat transformation);
   void calculateTransformation();
+  void imageCallback(const sensor_msgs::ImageConstPtr& msg);
 
   FilterHSV filter_;
+  cv::Mat img_;
   cv::Mat camera_matrix_;
   cv::Mat distortion_matrix_;
   cv::Mat image_to_checkerboard_;
@@ -137,7 +145,9 @@ private:
   ros::NodeHandle node_;
   ros::Publisher publisher_;
   ros::Subscriber subscriber_;
+  ros::Subscriber img_sub_;
   tf::TransformBroadcaster br_;
+  bool received_image_;
   bool intrinsic_calibrated_;
   bool extrinsic_calibrated_;
 };

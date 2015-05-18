@@ -6,7 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /TF1/Frames1
-      Splitter Ratio: 0.658537
+      Splitter Ratio: 0.794425
     Tree Height: 745
   - Class: rviz/Selection
     Name: Selection
@@ -49,39 +49,19 @@ Visualization Manager:
       Reference Frame: <Fixed Frame>
       Value: true
     - Class: rviz/TF
-      Enabled: true
+      Enabled: false
       Frame Timeout: 15
       Frames:
-        All Enabled: true
-        camera_checkerboard:
-          Value: true
-        camera_frame:
-          Value: true
-        robot_frame:
-          Value: true
-        tracker_depth_frame:
-          Value: true
-        tracker_rgb_frame:
-          Value: true
-        world:
-          Value: true
+        All Enabled: false
       Marker Scale: 1
       Name: TF
       Show Arrows: false
       Show Axes: true
       Show Names: true
       Tree:
-        world:
-          camera_checkerboard:
-            camera_frame:
-              {}
-            tracker_rgb_frame:
-              tracker_depth_frame:
-                {}
-          robot_frame:
-            {}
+        {}
       Update Interval: 0
-      Value: true
+      Value: false
     - Alpha: 1
       Class: rviz/PointStamped
       Color: 85; 255; 0
@@ -187,7 +167,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 7.5136
+      Distance: 5.9913
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
@@ -199,10 +179,10 @@ Visualization Manager:
         Z: 0
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.6604
+      Pitch: 0.7854
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.75859
+      Yaw: 0.0204103
     Saved: ~
 Window Geometry:
   Displays:

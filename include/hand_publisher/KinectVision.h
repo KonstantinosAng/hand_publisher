@@ -62,6 +62,7 @@ class KinectVision
 {
 public:
   KinectVision();
+  void subscribeTopic(const std::string &topic_name);
   cv::Mat openFile(const std::string &filename);
   void showImage(const cv::Mat &image,
                  const std::string &window_name = "Display Inage") const;

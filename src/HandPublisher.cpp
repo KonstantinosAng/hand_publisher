@@ -229,7 +229,7 @@ void HandPublisher::publishResults() {
   normal.header.stamp = ros::Time::now();
   normal.point.x = 0.0;
   normal.point.y = 0.0;
-  normal.point.z = 0.5;
+  normal.point.z = 1.0;
   human_orientation_pub_.publish(normal);
 
 }
