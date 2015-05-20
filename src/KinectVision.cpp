@@ -67,6 +67,8 @@ void KinectVision::imageCallBack(const sensor_msgs::ImageConstPtr& msg)
     ROS_ERROR("cv_bridge exception: %s", e.what());
     return;
   }
+  ROS_ERROR("Received Image from JSON Parser");
+  this->saveFile(cv_ptr->image, "/home/aris/source/indigo/raad2015_ws/src/hand_publisher/samples/test_kinect_view.jpg");
   calibrateExtrinsic(cv_ptr->image);
 }
 

@@ -146,7 +146,7 @@ void Coordination::fabric(const Float64MultiArray &msg)
   {
     PointStamped temp;
     temp.header.frame_id = "/camera_checkerboard";
-    temp.header.stamp = ros::Time::now();
+    temp.header.stamp = ros::Time::now() - ros::Duration(0.5);
     temp.point.x = msg.data.at(i)/100.0;
     temp.point.y = msg.data.at(i+1)/100.0;
     temp.point.z = 0;
@@ -197,7 +197,12 @@ bool Coordination::isNearFabric(double distance)
   PointStamped hand_position_camera;
 
   // Transform hand position to the same frame
-  listener_.transformPoint(fabric_vertices_.at(0).header.frame_id, hand_position_tracker, hand_position_camera);
+  try {
+    listener_.transformPoint(fabric_vertices_.at(0).header.frame_id, hand_position_tracker, hand_position_camera);
+  }
+  catch (const tf::TransformException &e) {
+    ROS_ERROR("%s", e.what());
+  }
 
   for (size_t i = 0; i < fabric_vertices_.size(); ++i) {
     double distance = this->l2distance(fabric_vertices_[i].point, hand_position_camera.point);
@@ -206,10 +211,10 @@ bool Coordination::isNearFabric(double distance)
   int close_element;
   double close_element_distance;
   close_element = this->findMinValue(distances, close_element_distance);
-//  ROS_ERROR("Distance X: %f, Distance Y: %f, Distance Z: %f",
-//            fabric_vertices_[close_element].point.x - hand_position_camera.point.x,
-//            fabric_vertices_[close_element].point.y - hand_position_camera.point.y,
-//            fabric_vertices_[close_element].point.z - hand_position_camera.point.z);
+  ROS_DEBUG("Distance X: %f, Distance Y: %f, Distance Z: %f",
+            fabric_vertices_[close_element].point.x - hand_position_camera.point.x,
+            fabric_vertices_[close_element].point.y - hand_position_camera.point.y,
+            fabric_vertices_[close_element].point.z - hand_position_camera.point.z);
   if (close_element_distance < distance) {
     human_gripped_point_index_ = close_element;
     gripped_ = true;
@@ -292,7 +297,12 @@ void Coordination::sendRobotGoal()
   grip_point_camera.header.stamp = ros::Time::now();
   PointStamped grip_point_robot;
   // Transform point to the robot frame
-  listener_.transformPoint("/robot_frame", grip_point_camera, grip_point_robot);
+  try {
+    listener_.transformPoint("/robot_frame", grip_point_camera, grip_point_robot);
+  }
+  catch (const tf::TransformException &e) {
+    ROS_ERROR("%s", e.what());
+  }
 
   if (grip_point_robot.point.z < 0.302)
     grip_point_robot.point.z = 0.302;
@@ -307,7 +317,12 @@ void Coordination::getCurrentHand()
 {
   // Hand from kinect
   PointStamped hand_grabbed_kinect = hand_positions_.front();
-  listener_.transformPoint("/camera_checkerboard", hand_grabbed_kinect, hand_grabbed_);
+  try {
+    listener_.transformPoint("/camera_checkerboard", hand_grabbed_kinect, hand_grabbed_);
+  }
+  catch (const tf::TransformException &e) {
+    ROS_ERROR("%s", e.what());
+  }
 }
 
 void Coordination::sendRobotCurrent()
@@ -323,7 +338,12 @@ void Coordination::sendRobotCurrent()
   //  hand_grabbed_.header.stamp = timecall;
     // Hand from Camera
     PointStamped hand_to_camera;
-    listener_.transformPoint("/camera_checkerboard", current_hand, hand_to_camera);
+    try {
+      listener_.transformPoint("/camera_checkerboard", current_hand, hand_to_camera);
+    }
+    catch (const tf::TransformException &e) {
+      ROS_ERROR("%s", e.what());
+    }
 
     double dx = hand_to_camera.point.x - hand_grabbed_.point.x;
     double dy = hand_to_camera.point.y - hand_grabbed_.point.y;
@@ -334,7 +354,12 @@ void Coordination::sendRobotCurrent()
     robot_gripped_point_cam.header.stamp = timecall;
     // Robot Gripped point from robot
     PointStamped robot_gripped_point;
-    listener_.transformPoint("/robot_frame", robot_gripped_point_cam, robot_gripped_point);
+    try {
+      listener_.transformPoint("/robot_frame", robot_gripped_point_cam, robot_gripped_point);
+    }
+    catch (const tf::TransformException &e) {
+      ROS_ERROR("%s", e.what());
+    }
 
     robot_cmd_.header.frame_id = "/robot_frame";
     robot_cmd_.header.stamp = timecall;
@@ -377,30 +402,40 @@ void Coordination::requestFabricData()
 PointStamped Coordination::calculateGrippingPoint()
 {
   std::vector<double> angles;
-  PointStamped normal_to_chess;
-  listener_.transformPoint("/camera_checkerboard", human_orientation_, normal_to_chess);
+  geometry_msgs::Vector3Stamped normal;
+  normal.header = human_orientation_.header;
+  normal.vector.x = human_orientation_.point.x;
+  normal.vector.y = human_orientation_.point.y;
+  normal.vector.z = human_orientation_.point.z;
+  geometry_msgs::Vector3Stamped normal_to_chess;
+  try {
+    listener_.transformVector("/camera_checkerboard", normal, normal_to_chess);
+  }
+  catch (const tf::TransformException &e) {
+    ROS_ERROR("%s", e.what());
+  }
 
   for (size_t i = 0; i < fabric_vertices_.size(); ++i) {
-    if ( i == human_gripped_point_index_) {
+    if (i == human_gripped_point_index_) {
       angles.push_back(std::numeric_limits<double>::max());
       continue;
     }
     Vector3 edge;
-    edge.setX(std::abs(fabric_vertices_[i].point.x - fabric_vertices_[human_gripped_point_index_].point.x));
-    edge.setY(std::abs(fabric_vertices_[i].point.y - fabric_vertices_[human_gripped_point_index_].point.y));
-    edge.setZ(std::abs(fabric_vertices_[i].point.z - fabric_vertices_[human_gripped_point_index_].point.z));
-    Vector3 normal;
-    normal.setX(normal_to_chess.point.x);
-    normal.setY(normal_to_chess.point.y);
-    normal.setZ(normal_to_chess.point.z);
-    double angle = tf::tfAngle(edge,normal);
-    if (abs(angle - 3.14159) < angle)
-      angle = abs(angle - 3.14159);
+    edge.setX(fabric_vertices_[i].point.x - fabric_vertices_[human_gripped_point_index_].point.x);
+    edge.setY(fabric_vertices_[i].point.y - fabric_vertices_[human_gripped_point_index_].point.y);
+    edge.setZ(fabric_vertices_[i].point.z - fabric_vertices_[human_gripped_point_index_].point.z);
+    ROS_DEBUG("Edge is (%f,%f,%f)", edge.getX(), edge.getY(), edge.getZ());
+
+    Vector3 tf_normal;
+    tf::vector3MsgToTF(normal_to_chess.vector, tf_normal);
+    tf_normal.setZ(0.0);
+
+    double angle = edge.angle(tf_normal);
+    ROS_DEBUG("Angle is %f", angle);
     angles.push_back(angle);
   }
   double angle;
   robot_gripped_point_index_ = this->findMinValue(angles,angle);
-  ROS_ERROR("Angle was calculated %f", angle);
   return (fabric_vertices_[robot_gripped_point_index_]);
 }
 

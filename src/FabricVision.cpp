@@ -526,7 +526,9 @@ void FabricVision::fabricRequest(const std_msgs::Bool &msg)
   // Requested localization
   if (msg.data == true) {
     if (received_image_) {
+      ROS_ERROR("Requested Localization");
       cv::Mat img = this->undistort(img_);
+      this->saveFile(img, "/home/aris/source/indigo/raad2015_ws/src/hand_publisher/samples/test_fabric_view.jpg");
       img = this->applyFilters(img);
       std::vector<cv::Point2f> vertices = this->calculateVertices(img);
       std::vector<cv::Point3f> world = this->projectTo3D(vertices);

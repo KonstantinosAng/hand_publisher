@@ -54,18 +54,17 @@ int main(int argc, char **argv) {
 
   // Wait to receive the first image
   ros::topic::waitForMessage<sensor_msgs::Image>("kinect2/rgb/image_color");
-  // Spin to perform the extrinsic calibration
   ros::spinOnce();
-  ros::Rate rate(30);
+  ros::Rate rate(50);
   rate.sleep();
 
   /* Just for testing */
   // ros::Duration(1).sleep(); //sleep for a few moments
   // ros::spinOnce();
-  // std::string open_path(package_path);
-  // open_path.append("/samples/kinect2_rgb.jpg");
-  // cv::Mat img = kinect.openFile(open_path);
-  // kinect.calibrateExtrinsic(img);
+   std::string open_path(package_path);
+   open_path.append("/samples/kinect2_rgb.jpg");
+   cv::Mat img = kinect.openFile(open_path);
+   kinect.calibrateExtrinsic(img);
   /* Testing */
 
   while (ros::ok()) {

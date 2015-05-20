@@ -31,7 +31,7 @@
 	</node>
 
 	<!-- Load Kinect Localization Node -->
-	<node name="kinect2_localization" pkg="hand_publisher" type="kinect_vision_node" />
+	<node name="kinect_vision_node" pkg="hand_publisher" type="kinect_vision_node" />
 
 	<!-- TF Static Transforms to World -->
 	<node pkg="tf" type="static_transform_publisher" name="world_to_robot" args="0 0 0.532 0 0 0 /world /robot_frame 100" />

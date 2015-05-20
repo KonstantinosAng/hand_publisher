@@ -91,7 +91,7 @@ private:
 
   unsigned long int tracker_id_;
   Point hand_;
-  PoseStamped spine_mid_;
+  PoseStamped spine_shoulder_;
   PoseStamped right_hand_;
   PoseStamped filtered_mid_;
   PoseStamped filtered_hand_;

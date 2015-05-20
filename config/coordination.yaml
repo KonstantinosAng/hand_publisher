@@ -1,9 +1,9 @@
 robot_hard_limits:
-  low:
-    x:
-    y:
+  low: 
+    x: 0.0
+    y: 0.0
     z: 0.31
   high:
     x: 0.67
-    y:
+    y: 1.0
     z: 0.39

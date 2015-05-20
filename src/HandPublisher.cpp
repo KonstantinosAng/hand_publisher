@@ -77,33 +77,33 @@ void HandPublisher::runLoop() {
 
 void HandPublisher::updateTransform() {
   try {
-    listener_.lookupTransform("/tracker_depth_frame",
-                              "/right_hand",
-                              ros::Time(0),
-                              tf_tracker_to_right_hand_);
-    listener_.lookupTransform("/tracker_depth_frame",
-                              "/right_shoulder",
+//    listener_.lookupTransform("/tracker_depth_frame",
+//                              "/right_hand",
+//                              ros::Time(0),
+//                              tf_tracker_to_right_hand_);
+    listener_.lookupTransform("/ShoulderRight",
+                              "/tracker_depth_frame",
                               ros::Time(0),
                               tf_tracker_to_right_shoulder_);
-    listener_.lookupTransform("/tracker_depth_frame",
-                              "/left_shoulder",
+    listener_.lookupTransform("/ShoulderLeft",
+                              "/tracker_depth_frame",
                               ros::Time(0),
                               tf_tracker_to_left_shoulder_);
-    listener_.lookupTransform("/tracker_depth_frame",
-                              "/torso",
+    listener_.lookupTransform("/SpineMid",
+                              "/tracker_depth_frame",
                               ros::Time(0),
                               tf_tracker_to_torso_);
   }
   catch (const tf::TransformException &e) {
-    //ROS_ERROR("%s", e.what());
+    ROS_ERROR("%s", e.what());
   }
 
-  Point hand;
-  hand.x = tf_tracker_to_right_hand_.getOrigin().getX();
-  hand.y = tf_tracker_to_right_hand_.getOrigin().getY();
-  hand.z = tf_tracker_to_right_hand_.getOrigin().getZ();
+//  Point hand;
+//  hand.x = tf_tracker_to_right_hand_.getOrigin().getX();
+//  hand.y = tf_tracker_to_right_hand_.getOrigin().getY();
+//  hand.z = tf_tracker_to_right_hand_.getOrigin().getZ();
 
-  this->addAverage(hand);
+//  this->addAverage(hand);
 }
 
 void HandPublisher::sendTransform() {
@@ -169,7 +169,7 @@ void HandPublisher::calcOrientation()
 //  vector_pub_.publish(message);
 
   PointStamped test;
-  test.header.frame_id = "/torso";
+  test.header.frame_id = "/SpineMid";
   test.header.stamp = ros::Time::now();
   test.point.x = normal.getX();
   test.point.y = normal.getY();
@@ -192,10 +192,10 @@ void HandPublisher::receivedBody(const k2_client::BodyArray &msg) {
     for (size_t i = 0; i < msg.bodies.size(); ++i) {
       if (msg.bodies.at(i).isTracked) {
         k2_client::Body tracked_human = msg.bodies.at(i);
-        spine_mid_.header.frame_id = "/tracker_depth_frame";
-        spine_mid_.header.stamp = tracked_human.header.stamp;
-        spine_mid_.pose.orientation = tracked_human.jointOrientations.at(1).orientation;
-        spine_mid_.pose.position = tracked_human.jointPositions.at(1).position;
+        spine_shoulder_.header.frame_id = "/tracker_depth_frame";
+        spine_shoulder_.header.stamp = tracked_human.header.stamp;
+        spine_shoulder_.pose.orientation = tracked_human.jointOrientations.at(1).orientation;
+        spine_shoulder_.pose.position = tracked_human.jointPositions.at(1).position;
         right_hand_.header.frame_id = "/tracker_depth_frame";
         right_hand_.header.stamp = tracked_human.header.stamp;
         right_hand_.pose.position = tracked_human.jointPositions.at(11).position;
@@ -211,7 +211,7 @@ void HandPublisher::receivedBody(const k2_client::BodyArray &msg) {
 
 void HandPublisher::updateHuman() {
   //Could apply filter
-  filtered_mid_ = spine_mid_;
+  filtered_mid_ = spine_shoulder_;
   filtered_hand_ = right_hand_;
 }
 
@@ -225,7 +225,7 @@ void HandPublisher::publishResults() {
   publisher_.publish(hand);
 
   PointStamped normal;
-  normal.header.frame_id = "SpineMid";
+  normal.header.frame_id = "SpineShoulder";
   normal.header.stamp = ros::Time::now();
   normal.point.x = 0.0;
   normal.point.y = 0.0;
