@@ -36,7 +36,7 @@ target_link_libraries(skeleton_to_hand_node         ${catkin_LIBRARIES})
 add_executable(fabric_vision_node ${HEADERS}        src/fabric_vision_node.cpp
                                                     src/FabricVision.cpp)
 target_link_libraries(fabric_vision_node            ${catkin_LIBRARIES}
-                                                    ${OpenCV_LIBRARIES})
+                                                    ${OpenCV_LIBS})
 
 add_executable(coordination_node ${HEADERS}         src/coordination_node.cpp
                                                     src/Coordination.cpp)
