@@ -1,4 +1,6 @@
-# Hand Publisher #
+# Hand Publisher [![Build Status](https://img.shields.io/travis/roboticsgroup/hand_publisher/kinect2.svg)](https://travis-ci.org/roboticsgroup/hand_publisher)
+[![Open Issues](https://img.shields.io/github/issues/roboticsgroup/hand_publisher.svg)](https://github.com/roboticsgroup/hand_publisher/issues)
+[![License](https://img.shields.io/github/license/roboticsgroup/hand_publisher.svg)](https://github.com/roboticsgroup/hand_publisher/blob/master/LICENSE.md)
 
 This package contains the source code for the skeleton tracking and communication for fabric folding using the Adept Scara robot, the Kinect openni2_tracker ROS package and a vision sensor.
 

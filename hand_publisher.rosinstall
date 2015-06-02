@@ -1,0 +1,2 @@
+- git: {local-name: hand_publisher, uri: 'https://github.com/roboticsgroup/hand_publisher.git', version: kinect2}
+- git: {local-name: k2_client, uri: 'https://github.com/roboticsgroup/k2_client.git', version: master}
