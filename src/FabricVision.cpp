@@ -312,7 +312,8 @@ void FabricVision::toCanny(cv::Mat &image) const {
 std::vector<std::vector<cv::Point> > FabricVision::findContours(cv::Mat &image)
     const {
   std::vector<std::vector<cv::Point> > contours;
-  cv::findContours(image.clone(), contours, cv::RETR_EXTERNAL,
+  cv::Mat m = image.clone();
+  cv::findContours(m, contours, cv::RETR_EXTERNAL,
                    cv::CHAIN_APPROX_SIMPLE);
   return (contours);
 }
