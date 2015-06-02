@@ -7,6 +7,21 @@ find_package(Boost REQUIRED
             COMPONENTS thread)
 find_package(OpenCV REQUIRED)
 
+# use the LSB stuff if possible :)
+EXECUTE_PROCESS(
+  COMMAND cat /etc/lsb-release
+  COMMAND grep DISTRIB_RELEASE
+  COMMAND awk -F= "{ print $2 }"
+  COMMAND tr "\n" " "
+  COMMAND sed "s/ //"
+  OUTPUT_VARIABLE LSB_RELEASE
+  RESULT_VARIABLE LSB_RELEASE_RESULT
+)
+
+if(${LSB_RELEASE} STREQUAL "12.04")
+    set(OpenCV_LIBRARIES ${OpenCV_LIBS})
+endif(${LSB_RELEASE} STREQUAL "12.04")
+
 catkin_package(
   INCLUDE_DIRS include
   CATKIN_DEPENDS roscpp tf std_msgs
@@ -36,7 +51,7 @@ target_link_libraries(skeleton_to_hand_node         ${catkin_LIBRARIES})
 add_executable(fabric_vision_node ${HEADERS}        src/fabric_vision_node.cpp
                                                     src/FabricVision.cpp)
 target_link_libraries(fabric_vision_node            ${catkin_LIBRARIES}
-                                                    ${OpenCV_LIBS})
+                                                    ${OpenCV_LIBRARIES})
 
 add_executable(coordination_node ${HEADERS}         src/coordination_node.cpp
                                                     src/Coordination.cpp)
