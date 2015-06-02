@@ -7,6 +7,21 @@ find_package(Boost REQUIRED
             COMPONENTS thread)
 find_package(OpenCV REQUIRED)
 
+# use the LSB stuff if possible :)
+EXECUTE_PROCESS(
+  COMMAND cat /etc/lsb-release
+  COMMAND grep DISTRIB_RELEASE
+  COMMAND awk -F= "{ print $2 }"
+  COMMAND tr "\n" " "
+  COMMAND sed "s/ //"
+  OUTPUT_VARIABLE LSB_RELEASE
+  RESULT_VARIABLE LSB_RELEASE_RESULT
+)
+
+if(${LSB_RELEASE} STREQUAL "12.04")
+    set(OpenCV_LIBRARIES ${OpenCV_LIBS})
+endif(${LSB_RELEASE} STREQUAL "12.04")
+
 catkin_package(
   INCLUDE_DIRS include
   CATKIN_DEPENDS roscpp tf std_msgs k2_client
